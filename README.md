@@ -11,7 +11,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/anthonyA1214/traffic-flow-simulator">
-    <img src="images/logo.svg" alt="Logo" width="80" height="80">
+    <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a> <h3 align="center">Traffic Flow Simulator</h3>
 
   <p align="center">
@@ -58,7 +58,6 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Traffic Flow Simulation Banner][project-banner]](#)
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
 This project simulates traffic flow through a real intersection using the **Nagel-Schreckenberg (NaSch) cellular automaton model**, with the goal of experimenting with signal timing optimization.
@@ -166,7 +165,7 @@ Distributed under the MIT License. See [LICENSE][license-url] for more informati
 [leaflet-url]: https://leafletjs.com/
 [uv-url]: https://docs.astral.sh/uv/
 [bun-url]: https://bun.com/
-[project-banner]: images/banner.png
+[product-screenshot]: images/screenshot.png
 [issues-shield]: https://img.shields.io/github/issues/anthonyA1214/traffic-flow-simulator?style=for-the-badge
 [issues-url]: https://github.com/anthonyA1214/traffic-flow-simulator/issues
 [license-shield]: https://img.shields.io/github/license/anthonyA1214/traffic-flow-simulator?style=for-the-badge
