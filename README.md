@@ -62,7 +62,7 @@
 
 This project simulates traffic flow through a real intersection using the **Nagel-Schreckenberg (NaSch) cellular automaton model**, with the goal of experimenting with signal timing optimization.
 
-The focus intersection is the **Roxas Boulevard / Padre Burgos Avenue / Bonifacio Drive** junction in Manila (near Luneta/Rizal Park) — a multi-leg convergence rather than a simple 4-way. Road geometry is pulled once from OpenStreetMap and used purely as a static spatial reference; no external APIs or live traffic data are used at runtime. The simulation logic itself operates on abstract 1D lane arrays and has no inherent dependency on real-world geometry.
+The focus intersection is the **Commonwealth Avenue / Mindanao Avenue** junction in Quezon City — a multi-leg convergence rather than a simple 4-way. Road geometry is pulled once from OpenStreetMap and used purely as a static spatial reference; no external APIs or live traffic data are used at runtime. The simulation logic itself operates on abstract 1D lane arrays and has no inherent dependency on real-world geometry.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
