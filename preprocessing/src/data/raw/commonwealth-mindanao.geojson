@@ -1,0 +1,822 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-09-17T11:59:51Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/9473123",
+        "alt_name": "Mindanao Avenue Extension;Mindanao Extension",
+        "highway": "tertiary",
+        "lanes": "3",
+        "lit": "yes",
+        "name": "Mindanao Avenue",
+        "oneway": "yes",
+        "sidewalk": "right",
+        "surface": "concrete"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.048424,
+            14.717872
+          ],
+          [
+            121.0485316,
+            14.7179733
+          ],
+          [
+            121.048617,
+            14.7180515
+          ],
+          [
+            121.0487488,
+            14.7181706
+          ],
+          [
+            121.0502947,
+            14.7195887
+          ],
+          [
+            121.0512366,
+            14.7204527
+          ],
+          [
+            121.0516281,
+            14.7208031
+          ],
+          [
+            121.0518605,
+            14.7210158
+          ]
+        ]
+      },
+      "id": "way/9473123"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/29252100",
+        "alt_name": "Mindanao Avenue Extension;Mindanao Extension",
+        "foot": "no",
+        "highway": "secondary",
+        "lane_markings": "yes",
+        "lanes": "3",
+        "lit": "yes",
+        "name": "Mindanao Avenue",
+        "oneway": "yes",
+        "surface": "concrete"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0521244,
+            14.7212575
+          ],
+          [
+            121.05217,
+            14.7212991
+          ],
+          [
+            121.0522131,
+            14.7213398
+          ]
+        ]
+      },
+      "id": "way/29252100"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/77447666",
+        "highway": "primary",
+        "lane_markings": "yes",
+        "lanes": "4",
+        "lit": "yes",
+        "maxspeed": "60",
+        "maxspeed:bus": "50",
+        "maxspeed:hgv": "50",
+        "name": "Commonwealth Avenue",
+        "name:etymology:wikidata": "Q7785",
+        "old_name": "Don Mariano Marcos Avenue",
+        "oneway": "yes",
+        "ref": "170",
+        "sidewalk:right": "yes",
+        "source:maxspeed": "sign",
+        "surface": "asphalt",
+        "wikipedia": "en:Commonwealth Avenue (Quezon City)"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0487433,
+            14.725226
+          ],
+          [
+            121.0487697,
+            14.7251946
+          ],
+          [
+            121.0487814,
+            14.7251818
+          ],
+          [
+            121.0490817,
+            14.7248282
+          ],
+          [
+            121.0492742,
+            14.7246025
+          ],
+          [
+            121.0500325,
+            14.7237126
+          ],
+          [
+            121.0505108,
+            14.7231514
+          ],
+          [
+            121.0506072,
+            14.7230383
+          ],
+          [
+            121.0507977,
+            14.7228148
+          ],
+          [
+            121.0512024,
+            14.7223396
+          ],
+          [
+            121.0513955,
+            14.7221129
+          ],
+          [
+            121.0518882,
+            14.7215344
+          ],
+          [
+            121.0519765,
+            14.7214308
+          ],
+          [
+            121.0520364,
+            14.7213605
+          ]
+        ]
+      },
+      "id": "way/77447666"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/444678942",
+        "cycleway:right": "lane",
+        "highway": "primary",
+        "lane_markings": "yes",
+        "lanes": "4",
+        "lit": "yes",
+        "maxspeed": "60",
+        "maxspeed:bus": "50",
+        "maxspeed:hgv": "50",
+        "name": "Commonwealth Avenue",
+        "name:etymology:wikidata": "Q7785",
+        "old_name": "Don Mariano Marcos Avenue",
+        "oneway": "yes",
+        "ref": "170",
+        "sidewalk:right": "yes",
+        "source:maxspeed": "sign",
+        "surface": "asphalt",
+        "wikipedia": "en:Commonwealth Avenue (Quezon City)"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0571928,
+            14.7153694
+          ],
+          [
+            121.0558659,
+            14.7169615
+          ],
+          [
+            121.0555965,
+            14.7172852
+          ],
+          [
+            121.0555333,
+            14.7173545
+          ],
+          [
+            121.0554558,
+            14.7174541
+          ],
+          [
+            121.0554166,
+            14.7175006
+          ],
+          [
+            121.0550498,
+            14.7179408
+          ],
+          [
+            121.0549962,
+            14.718005
+          ],
+          [
+            121.0549488,
+            14.7180618
+          ],
+          [
+            121.0549289,
+            14.7180856
+          ],
+          [
+            121.0548576,
+            14.7181712
+          ],
+          [
+            121.0543853,
+            14.7187379
+          ],
+          [
+            121.0543388,
+            14.7187937
+          ],
+          [
+            121.0543238,
+            14.7188117
+          ],
+          [
+            121.0542152,
+            14.718942
+          ],
+          [
+            121.0541838,
+            14.7189796
+          ],
+          [
+            121.0541302,
+            14.719044
+          ],
+          [
+            121.0538418,
+            14.71939
+          ],
+          [
+            121.0525195,
+            14.7209766
+          ]
+        ]
+      },
+      "id": "way/444678942"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/592216401",
+        "alt_name": "Mindanao Avenue Extension;Mindanao Extension",
+        "highway": "tertiary",
+        "lane_markings": "yes",
+        "lanes": "3",
+        "lit": "yes",
+        "name": "Mindanao Avenue",
+        "oneway": "yes",
+        "sidewalk": "right",
+        "surface": "concrete"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0520364,
+            14.7213605
+          ],
+          [
+            121.0519584,
+            14.7212882
+          ],
+          [
+            121.051828,
+            14.721173
+          ],
+          [
+            121.051633,
+            14.7209867
+          ],
+          [
+            121.0515118,
+            14.7208708
+          ],
+          [
+            121.0512431,
+            14.7206268
+          ],
+          [
+            121.0496369,
+            14.7191595
+          ],
+          [
+            121.0494072,
+            14.7189497
+          ],
+          [
+            121.0486534,
+            14.7182652
+          ],
+          [
+            121.0485216,
+            14.7181461
+          ],
+          [
+            121.0483289,
+            14.7179712
+          ]
+        ]
+      },
+      "id": "way/592216401"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/610046347",
+        "cycleway:right": "lane",
+        "highway": "primary",
+        "lane_markings": "yes",
+        "lanes": "4",
+        "lit": "yes",
+        "maxspeed": "60",
+        "maxspeed:bus": "50",
+        "maxspeed:hgv": "50",
+        "name": "Commonwealth Avenue",
+        "name:etymology:wikidata": "Q7785",
+        "old_name": "Don Mariano Marcos Avenue",
+        "oneway": "yes",
+        "ref": "170",
+        "sidewalk:right": "yes",
+        "source:maxspeed": "sign",
+        "wikipedia": "en:Commonwealth Avenue (Quezon City)"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0521244,
+            14.7212575
+          ],
+          [
+            121.0521521,
+            14.7212236
+          ],
+          [
+            121.0536026,
+            14.7194478
+          ],
+          [
+            121.0536848,
+            14.7193473
+          ],
+          [
+            121.0537725,
+            14.7192399
+          ],
+          [
+            121.0539501,
+            14.7190225
+          ],
+          [
+            121.0540125,
+            14.718946
+          ],
+          [
+            121.0540424,
+            14.7189094
+          ],
+          [
+            121.0540649,
+            14.7188818
+          ],
+          [
+            121.0547303,
+            14.7180672
+          ],
+          [
+            121.0548063,
+            14.7179646
+          ],
+          [
+            121.0549201,
+            14.7178348
+          ],
+          [
+            121.0552829,
+            14.7173908
+          ],
+          [
+            121.0564533,
+            14.7159578
+          ],
+          [
+            121.0565786,
+            14.7158044
+          ],
+          [
+            121.057035,
+            14.7152457
+          ]
+        ]
+      },
+      "id": "way/610046347"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/610046348",
+        "foot": "no",
+        "highway": "primary",
+        "lanes": "4",
+        "lit": "yes",
+        "maxspeed": "60",
+        "maxspeed:bus": "50",
+        "maxspeed:hgv": "50",
+        "name": "Commonwealth Avenue",
+        "name:etymology:wikidata": "Q7785",
+        "oneway": "yes",
+        "ref": "170",
+        "source:maxspeed": "sign"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0520364,
+            14.7213605
+          ],
+          [
+            121.0521244,
+            14.7212575
+          ]
+        ]
+      },
+      "id": "way/610046348"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/610046349",
+        "alt_name": "Mindanao Avenue Extension;Mindanao Extension",
+        "foot": "no",
+        "highway": "secondary",
+        "lane_markings": "yes",
+        "lanes": "3",
+        "lit": "yes",
+        "name": "Mindanao Avenue",
+        "oneway": "yes",
+        "surface": "concrete"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0521258,
+            14.7214433
+          ],
+          [
+            121.0520364,
+            14.7213605
+          ]
+        ]
+      },
+      "id": "way/610046349"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/610046350",
+        "highway": "primary",
+        "lane_markings": "yes",
+        "lanes": "4",
+        "lit": "yes",
+        "maxspeed": "60",
+        "maxspeed:bus": "50",
+        "maxspeed:hgv": "50",
+        "name": "Commonwealth Avenue",
+        "name:etymology:wikidata": "Q7785",
+        "old_name": "Don Mariano Marcos Avenue",
+        "oneway": "yes",
+        "ref": "170",
+        "sidewalk:right": "yes",
+        "source:maxspeed": "sign",
+        "surface": "asphalt",
+        "wikipedia": "en:Commonwealth Avenue (Quezon City)"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0521258,
+            14.7214433
+          ],
+          [
+            121.0520675,
+            14.7215131
+          ],
+          [
+            121.051949,
+            14.7216551
+          ],
+          [
+            121.0518035,
+            14.7218294
+          ],
+          [
+            121.0517058,
+            14.7219465
+          ],
+          [
+            121.0516686,
+            14.7219911
+          ],
+          [
+            121.051045,
+            14.722738
+          ],
+          [
+            121.0501526,
+            14.723807
+          ],
+          [
+            121.0494031,
+            14.724705
+          ],
+          [
+            121.0492122,
+            14.7249337
+          ],
+          [
+            121.0489138,
+            14.725292
+          ],
+          [
+            121.0488743,
+            14.7253384
+          ]
+        ]
+      },
+      "id": "way/610046350"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/610046351",
+        "alt_name": "Mindanao Avenue Extension;Mindanao Extension",
+        "highway": "secondary",
+        "lane_markings": "yes",
+        "lanes": "3",
+        "lit": "yes",
+        "name": "Mindanao Avenue",
+        "oneway": "yes",
+        "sidewalk": "right",
+        "surface": "concrete"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0522131,
+            14.7213398
+          ],
+          [
+            121.0522921,
+            14.7214141
+          ],
+          [
+            121.0526667,
+            14.7217663
+          ],
+          [
+            121.052698,
+            14.7217949
+          ],
+          [
+            121.0549455,
+            14.723865
+          ],
+          [
+            121.0555208,
+            14.7243949
+          ],
+          [
+            121.0570105,
+            14.7257668
+          ],
+          [
+            121.0580344,
+            14.7267096
+          ]
+        ]
+      },
+      "id": "way/610046351"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/610046352",
+        "foot": "no",
+        "highway": "primary",
+        "lanes": "4",
+        "lit": "yes",
+        "maxspeed": "60",
+        "maxspeed:bus": "50",
+        "maxspeed:hgv": "50",
+        "name": "Commonwealth Avenue",
+        "name:etymology:wikidata": "Q7785",
+        "old_name": "Don Mariano Marcos Avenue",
+        "oneway": "yes",
+        "ref": "170",
+        "source:maxspeed": "sign",
+        "wikipedia": "en:Commonwealth Avenue (Quezon City)"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0522131,
+            14.7213398
+          ],
+          [
+            121.0521258,
+            14.7214433
+          ]
+        ]
+      },
+      "id": "way/610046352"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/709075246",
+        "alt_name": "Mindanao Avenue Extension;Mindanao Extension",
+        "highway": "secondary",
+        "lane_markings": "yes",
+        "lanes": "3",
+        "lit": "yes",
+        "name": "Mindanao Avenue",
+        "oneway": "yes",
+        "sidewalk": "right",
+        "surface": "concrete"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0579474,
+            14.7268113
+          ],
+          [
+            121.0577779,
+            14.7266579
+          ],
+          [
+            121.05759,
+            14.7264857
+          ],
+          [
+            121.0567262,
+            14.7256717
+          ],
+          [
+            121.0566161,
+            14.725571
+          ],
+          [
+            121.0554343,
+            14.7244952
+          ],
+          [
+            121.0542463,
+            14.7234003
+          ],
+          [
+            121.054052,
+            14.7232212
+          ],
+          [
+            121.0539054,
+            14.7230861
+          ],
+          [
+            121.053264,
+            14.7224949
+          ],
+          [
+            121.0531369,
+            14.7223779
+          ],
+          [
+            121.052706,
+            14.7219774
+          ],
+          [
+            121.0526222,
+            14.7218996
+          ],
+          [
+            121.0524198,
+            14.7217159
+          ],
+          [
+            121.0521998,
+            14.7215119
+          ],
+          [
+            121.0521258,
+            14.7214433
+          ]
+        ]
+      },
+      "id": "way/709075246"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/941651666",
+        "highway": "primary",
+        "lanes": "4",
+        "lit": "yes",
+        "maxspeed": "60",
+        "maxspeed:bus": "50",
+        "maxspeed:hgv": "50",
+        "name": "Commonwealth Avenue",
+        "name:etymology:wikidata": "Q7785",
+        "old_name": "Don Mariano Marcos Avenue",
+        "oneway": "yes",
+        "ref": "170",
+        "sidewalk": "right",
+        "source:maxspeed": "sign",
+        "surface": "asphalt",
+        "turn:lanes": "left|through|through|right",
+        "wikipedia": "en:Commonwealth Avenue (Quezon City)"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0525195,
+            14.7209766
+          ],
+          [
+            121.0522422,
+            14.7213053
+          ],
+          [
+            121.0522131,
+            14.7213398
+          ]
+        ]
+      },
+      "id": "way/941651666"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/941651667",
+        "alt_name": "Mindanao Avenue Extension;Mindanao Extension",
+        "highway": "tertiary",
+        "lane_markings": "yes",
+        "lanes": "3",
+        "lit": "yes",
+        "name": "Mindanao Avenue",
+        "oneway": "yes",
+        "sidewalk": "right",
+        "surface": "concrete",
+        "turn:lanes": "left|left|through"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            121.0518605,
+            14.7210158
+          ],
+          [
+            121.052047,
+            14.7211866
+          ],
+          [
+            121.0521244,
+            14.7212575
+          ]
+        ]
+      },
+      "id": "way/941651667"
+    }
+  ]
+}
