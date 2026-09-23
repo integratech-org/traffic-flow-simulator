@@ -1,0 +1,75 @@
+{
+  "junction": {
+    "name": "Commonwealth Avenue / Mindanao Avenue",
+    "hubNodes": {
+      "hub1": [121.052124, 14.721258],
+      "hub2": [121.052213, 14.721340],
+      "hub3": [121.052036, 14.721360],
+      "hub4": [121.052126, 14.721443]
+    }
+  },
+  "legs": [
+    {
+      "id": "mindanao_sw",
+      "label": "Mindanao Avenue (SW)",
+      "highway": "tertiary",
+      "lanes": 3,
+      "inbound": {
+        "wayIds": ["way/9473123", "way/941651667"],
+        "note": "way/9473123 is the approach; way/941651667 is the short connector needed to reach hub1"
+      },
+      "outbound": {
+        "wayIds": ["way/592216401"],
+        "note": "starts directly at hub3, no connector needed"
+      }
+    },
+    {
+      "id": "commonwealth_sw",
+      "label": "Commonwealth Avenue (SW)",
+      "highway": "primary",
+      "lanes": 4,
+      "inbound": {
+        "wayIds": ["way/77447666"],
+        "note": "ends directly at hub3, no connector needed"
+      },
+      "outbound": {
+        "wayIds": ["way/610046350"],
+        "note": "starts directly at hub4"
+      }
+    },
+    {
+      "id": "commonwealth_ne",
+      "label": "Commonwealth Avenue (NE)",
+      "highway": "primary",
+      "lanes": 4,
+      "inbound": {
+        "wayIds": ["way/444678942", "way/941651666"],
+        "note": "way/444678942 is the approach; way/941651666 is the short connector needed to reach hub2"
+      },
+      "outbound": {
+        "wayIds": ["way/610046347"],
+        "note": "starts directly at hub1"
+      }
+    },
+    {
+      "id": "mindanao_ne",
+      "label": "Mindanao Avenue (NE)",
+      "highway": "secondary",
+      "lanes": 3,
+      "inbound": {
+        "wayIds": ["way/709075246"],
+        "note": "ends directly at hub4, no connector needed"
+      },
+      "outbound": {
+        "wayIds": ["way/610046351"],
+        "note": "starts directly at hub2"
+      }
+    }
+  ],
+  "connectsTo": {
+    "mindanao_sw": "mindanao_ne",
+    "mindanao_ne": "mindanao_sw",
+    "commonwealth_sw": "commonwealth_ne",
+    "commonwealth_ne": "commonwealth_sw"
+  }
+}

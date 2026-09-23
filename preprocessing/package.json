@@ -1,0 +1,12 @@
+{
+  "name": "preprocessing",
+  "version": "1.0.0",
+  "private": "true",
+  "type": "module",
+  "scripts": {
+    "build:network": "node src/preprocess.mjs"
+  },
+  "dependencies": {
+    "@turf/turf": "^7.4.0"
+  }
+}
