@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 
-app = FastAPI()
+from src.schemas import HealthResponse
+
+app = FastAPI(title="traffic-flow-simulator")
 
 
-@app.get("/")
-def read_root() -> dict[str, str]:
-    return {"Hello": "World"}
+@app.get("/health", response_model=HealthResponse, tags=["Health"])
+async def health() -> HealthResponse:
+    return HealthResponse(status="ok")
