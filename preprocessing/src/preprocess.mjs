@@ -8,7 +8,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const CELL_SIZE_METERS = 7.5;
 const GEOJSON_PATH = join(__dirname, "data/raw/commonwealth-mindanao.geojson");
 const LEG_CONFIG_PATH = join(__dirname, "data/leg-config.json");
-const OUTPUT_PATH = join(__dirname, "network.json");
+const OUTPUT_PATH = join(
+  __dirname,
+  "../../backend/src/network/data/network.json",
+);
 
 const geojson = JSON.parse(readFileSync(GEOJSON_PATH, "utf-8"));
 const legConfig = JSON.parse(readFileSync(LEG_CONFIG_PATH, "utf-8"));
