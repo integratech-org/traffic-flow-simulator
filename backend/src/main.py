@@ -26,5 +26,5 @@ app.include_router(network_router.router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health() -> HealthResponse:
+async def health_check() -> HealthResponse:
     return HealthResponse(status="ok")
