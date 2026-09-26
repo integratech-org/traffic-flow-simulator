@@ -6,5 +6,5 @@ app = FastAPI(title="traffic-flow-simulator")
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health() -> HealthResponse:
+async def health_check() -> HealthResponse:
     return HealthResponse(status="ok")
