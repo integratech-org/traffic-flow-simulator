@@ -1,7 +1,7 @@
-# Raw OSM Data — Roxas Blvd / Padre Burgos / Bonifacio Dr Junction
+# Raw OSM Data — Commonwealth Avenue / Mindanao Avenue Junction
 
 Extracted via [Overpass Turbo](https://overpass-turbo.eu/) from OpenStreetMap.
-Exported: [DATE]
+Exported: 9-22-26
 
 ## Files
 - `commonwealth-mindanao.geojson` — raw export, unmodified
