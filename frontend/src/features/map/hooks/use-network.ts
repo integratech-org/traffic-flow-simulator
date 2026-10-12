@@ -1,4 +1,4 @@
-import { fetchNetwork, type Lane } from "@/api/network"
+import { fetchNetwork, type Lane } from "@/features/map/api/get-network"
 import { useEffect, useState } from "react"
 
 export function useNetwork() {

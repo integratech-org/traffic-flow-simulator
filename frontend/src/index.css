@@ -73,6 +73,7 @@
 }
 
 :root {
+  --control-panel-width: 336px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.204 0.0378 258.826);
   --card: oklch(0.9842 0.0034 247.8575);
@@ -191,6 +192,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
@@ -198,4 +204,19 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Custom styles for Leaflet direction markers */
+.direction-label {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.direction-label::before {
+  display: none !important;
 }

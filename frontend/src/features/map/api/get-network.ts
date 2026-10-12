@@ -1,4 +1,4 @@
-import { fetchJson } from "./client"
+import { fetchJson } from "@/api/client"
 
 export interface Lane {
   legId: string
