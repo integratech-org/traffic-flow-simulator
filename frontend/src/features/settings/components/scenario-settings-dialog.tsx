@@ -81,7 +81,7 @@ export function ScenarioSettingsDialog({
           </Label>
           <Select
             value={settings.day}
-            onValueChange={(value) => handleChange("day", value)}
+            onValueChange={(value) => value && handleChange("day", value)}
           >
             <SelectTrigger className="h-11 w-full">
               <SelectValue placeholder="Select day" />
@@ -128,7 +128,7 @@ export function ScenarioSettingsDialog({
           </Label>
           <Select
             value={settings.weather}
-            onValueChange={(value) => handleChange("weather", value)}
+            onValueChange={(value) => value && handleChange("weather", value)}
           >
             <SelectTrigger className="h-11 w-full">
               <SelectValue placeholder="Select weather" />
@@ -136,7 +136,7 @@ export function ScenarioSettingsDialog({
             <SelectContent
               side="bottom"
               align="start"
-              sticky="always"
+              sticky={true}
               alignItemWithTrigger={false}
             >
               <SelectItem value="Sunny">Sunny</SelectItem>
