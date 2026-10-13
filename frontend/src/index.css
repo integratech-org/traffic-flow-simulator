@@ -220,3 +220,8 @@
 .direction-label::before {
   display: none !important;
 }
+
+/* Make direction markers clickable */
+.leaflet-interactive {
+  cursor: pointer !important;
+}

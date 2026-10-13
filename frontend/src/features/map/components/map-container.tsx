@@ -91,6 +91,7 @@ function MapContainer() {
       <TrafficLightDialog
         open={isTrafficLightDialogOpen}
         onOpenChange={setIsTrafficLightDialogOpen}
+        activeDirection={activeDirection}
         onDirectionChange={setActiveDirection}
       />
 
@@ -134,6 +135,7 @@ function MapContainer() {
           <DirectionMarkers
             center={junctionCenter}
             activeDirection={activeDirection}
+            onDirectionChange={setActiveDirection}
           />
         )}
 
