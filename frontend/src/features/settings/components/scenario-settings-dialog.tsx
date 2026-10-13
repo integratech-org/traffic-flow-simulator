@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { X } from "lucide-react"
 
 interface ScenarioSettings {
@@ -72,13 +79,27 @@ export function ScenarioSettingsDialog({
           <Label htmlFor="day" className="text-sm font-normal">
             Day
           </Label>
-          <Input
-            id="day"
-            type="text"
+          <Select
             value={settings.day}
-            onChange={(e) => handleChange("day", e.target.value)}
-            className="h-11"
-          />
+            onValueChange={(value) => value && handleChange("day", value)}
+          >
+            <SelectTrigger className="h-11 w-full">
+              <SelectValue placeholder="Select day" />
+            </SelectTrigger>
+            <SelectContent
+              side="bottom"
+              align="start"
+              alignItemWithTrigger={false}
+            >
+              <SelectItem value="Monday">Monday</SelectItem>
+              <SelectItem value="Tuesday">Tuesday</SelectItem>
+              <SelectItem value="Wednesday">Wednesday</SelectItem>
+              <SelectItem value="Thursday">Thursday</SelectItem>
+              <SelectItem value="Friday">Friday</SelectItem>
+              <SelectItem value="Saturday">Saturday</SelectItem>
+              <SelectItem value="Sunday">Sunday</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Time */}
@@ -105,13 +126,23 @@ export function ScenarioSettingsDialog({
           <Label htmlFor="weather" className="text-sm font-normal">
             Weather
           </Label>
-          <Input
-            id="weather"
-            type="text"
+          <Select
             value={settings.weather}
-            onChange={(e) => handleChange("weather", e.target.value)}
-            className="h-11"
-          />
+            onValueChange={(value) => value && handleChange("weather", value)}
+          >
+            <SelectTrigger className="h-11 w-full">
+              <SelectValue placeholder="Select weather" />
+            </SelectTrigger>
+            <SelectContent
+              side="bottom"
+              align="start"
+              sticky={true}
+              alignItemWithTrigger={false}
+            >
+              <SelectItem value="Sunny">Sunny</SelectItem>
+              <SelectItem value="Rainy">Rainy</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Scenario */}
