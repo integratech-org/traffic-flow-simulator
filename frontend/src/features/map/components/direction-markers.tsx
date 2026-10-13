@@ -4,11 +4,13 @@ import type { LatLngExpression } from "leaflet"
 interface DirectionMarkersProps {
   center: LatLngExpression
   activeDirection?: "north" | "south" | "east" | "west"
+  onDirectionChange?: (direction: "north" | "south" | "east" | "west") => void
 }
 
 export function DirectionMarkers({
   center,
   activeDirection = "north",
+  onDirectionChange,
 }: DirectionMarkersProps) {
   // Calculate positions for N, S, E, W markers relative to the center
   const [lat, lng] = center as [number, number]
@@ -57,9 +59,31 @@ export function DirectionMarkers({
             radius={isActive ? 16 : 12}
             pathOptions={{
               fillColor: direction.color,
-              fillOpacity: isActive ? 1 : 0.9,
+              fillOpacity: isActive ? 1 : 0.7,
               color: "white",
               weight: isActive ? 3 : 2,
+              className: "cursor-pointer",
+            }}
+            eventHandlers={{
+              click: () => {
+                if (onDirectionChange) {
+                  onDirectionChange(direction.key)
+                }
+              },
+              mouseover: (e) => {
+                const target = e.target
+                target.setStyle({
+                  fillOpacity: 1,
+                  radius: isActive ? 18 : 14,
+                })
+              },
+              mouseout: (e) => {
+                const target = e.target
+                target.setStyle({
+                  fillOpacity: isActive ? 1 : 0.7,
+                  radius: isActive ? 16 : 12,
+                })
+              },
             }}
           >
             <Tooltip

@@ -22,6 +22,7 @@ interface TrafficLightConfig {
 interface TrafficLightDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  activeDirection?: keyof TrafficLightConfig
   onDirectionChange: (direction: keyof TrafficLightConfig) => void
 }
 
@@ -41,11 +42,10 @@ const initialConfig: TrafficLightConfig = {
 export function TrafficLightDialog({
   open,
   onOpenChange,
+  activeDirection = "north",
   onDirectionChange,
 }: TrafficLightDialogProps) {
   const [config, setConfig] = useState<TrafficLightConfig>(initialConfig)
-  const [activeDirection, setActiveDirection] =
-    useState<keyof TrafficLightConfig>("north")
 
   const handleTimingChange = (
     direction: keyof TrafficLightConfig,
@@ -63,7 +63,6 @@ export function TrafficLightDialog({
 
   const handleDirectionChange = (value: string) => {
     const direction = value as keyof TrafficLightConfig
-    setActiveDirection(direction)
     onDirectionChange(direction)
   }
 
