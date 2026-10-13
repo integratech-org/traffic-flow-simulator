@@ -12,7 +12,12 @@ from fastapi import (
 from src.simulation import service
 from src.simulation.dependencies import valid_run_id
 from src.simulation.models import Run
-from src.simulation.schemas import CreateRunRequest, RunStateResponse, VehicleType
+from src.simulation.schemas import (
+    CreateRunRequest,
+    RunStateResponse,
+    SignalPlan,
+    VehicleType,
+)
 
 router = APIRouter(prefix="/simulation", tags=["Simulation"])
 
@@ -44,6 +49,11 @@ async def start_run(run: RunDep) -> RunStateResponse:
 @router.post("/runs/{run_id}/pause", response_model=RunStateResponse)
 async def pause_run(run: RunDep) -> RunStateResponse:
     return RunStateResponse.model_validate(service.pause_run(run))
+
+
+@router.put("/runs/{run_id}/signal-plan", response_model=RunStateResponse)
+async def update_signal_plan(run: RunDep, plan: SignalPlan) -> RunStateResponse:
+    return RunStateResponse.model_validate(service.update_signal_plan(run, plan))
 
 
 @router.delete("/runs/{run_id}", status_code=status.HTTP_204_NO_CONTENT)

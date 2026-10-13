@@ -179,9 +179,25 @@ class LaneCongestion(BaseModel):
     volume: int
 
 
+class SignalStatus(BaseModel):
+    signal_id: str
+    leg_id: str
+    phase: str  # "green" | "yellow" | "red"
+
+
+class Metrics(BaseModel):
+    throughput: int  # vehicles that have left the network so far
+    avg_wait: float  # seconds stopped, averaged over exited vehicles
+    max_queue: int
+    two_wheeler_pct: float
+    four_wheeler_pct: float
+
+
 class TickMessage(BaseModel):
     run_id: str
     state: RunState
     tick: int
     vehicles: list[VehicleState] = []
     congestion: list[LaneCongestion] = []
+    signals: list[SignalStatus] = []
+    metrics: Metrics | None = None
