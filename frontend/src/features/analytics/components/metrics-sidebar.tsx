@@ -9,29 +9,13 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
+import { useMemo } from "react"
+import { useSimStore } from "@/features/simulation/store"
 
 interface MetricsSidebarProps {
   open: boolean
   onClose: () => void
 }
-
-// TODO: Replace with real data from backend
-const mockMetricsData = {
-  avgWaitingTime: 43.8,
-  vehicleVolume: 41,
-  throughput: 1512,
-}
-
-// TODO: Replace with real data from backend
-const mockQueueData = [
-  { time: "0s", queue: 200 },
-  { time: "100s", queue: 250 },
-  { time: "200s", queue: 300 },
-  { time: "300s", queue: 260 },
-  { time: "400s", queue: 100 },
-  { time: "500s", queue: 210 },
-  { time: "600s", queue: 180 },
-]
 
 const chartConfig = {
   queue: {
@@ -41,6 +25,13 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
+  const metrics = useSimStore((s) => s.tick?.metrics)
+  const queueHistory = useSimStore((s) => s.queueHistory)
+  const queueData = useMemo(
+    () => queueHistory.map((p) => ({ time: `${p.t}s`, queue: p.queue })),
+    [queueHistory]
+  )
+
   return (
     <>
       {/* Overlay */}
@@ -99,7 +90,7 @@ export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
                         Avg waiting time per vehicle
                       </p>
                       <p className="text-2xl font-bold">
-                        {mockMetricsData.avgWaitingTime} s
+                        {(metrics?.avg_wait ?? 0).toFixed(1)} s
                       </p>
                     </div>
                   </div>
@@ -116,7 +107,7 @@ export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
                         Max queue length
                       </p>
                       <p className="text-2xl font-bold">
-                        {mockMetricsData.vehicleVolume}
+                        {metrics?.max_queue ?? 0}
                       </p>
                     </div>
                   </div>
@@ -133,7 +124,7 @@ export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
                         Throughput
                       </p>
                       <p className="text-2xl font-bold">
-                        {mockMetricsData.throughput}
+                        {metrics?.throughput ?? 0}
                       </p>
                     </div>
                   </div>
@@ -153,7 +144,7 @@ export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
                   config={chartConfig}
                   className="h-[280px] w-full"
                 >
-                  <LineChart data={mockQueueData}>
+                  <LineChart data={queueData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="time"
@@ -166,7 +157,7 @@ export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
-                      domain={[0, 400]}
+                      allowDecimals={false}
                       tick={{ fontSize: 12, fill: "#6b7280" }}
                     />
                     <ChartTooltip content={<ChartTooltipContent />} />

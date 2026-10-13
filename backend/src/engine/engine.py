@@ -209,7 +209,7 @@ class TrafficEngine:
                 self.next_vid += 1
 
     # ---- output ----
-    def snapshot(self) -> dict[str, list[dict[str, Any]]]:
+    def snapshot(self) -> dict[str, Any]:
         vehicles: list[dict[str, Any]] = []
         congestion: list[dict[str, Any]] = []
         for lane in self.lanes.values():
@@ -245,7 +245,20 @@ class TrafficEngine:
                     "volume": lane.n,
                 }
             )
-        return {"vehicles": vehicles, "congestion": congestion}
+        signals = [
+            {
+                "signal_id": sid,
+                "leg_id": leg,
+                "phase": self.signals.phase(sid, self.tick).value,
+            }
+            for leg, sid in LEG_SIGNAL.items()
+        ]
+        return {
+            "vehicles": vehicles,
+            "congestion": congestion,
+            "signals": signals,
+            "metrics": self.metrics(),
+        }
 
     def metrics(self) -> dict[str, float]:
         done = sum(self.exited.values())

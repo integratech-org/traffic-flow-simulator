@@ -12,6 +12,7 @@ from src.simulation.models import Run
 from src.simulation.schemas import (
     CreateRunRequest,
     RunState,
+    SignalPlan,
     TickMessage,
     VehicleType,
 )
@@ -73,6 +74,14 @@ def pause_run(run: Run) -> Run:
         return run  # created/paused: no-op
     _stop_task(run)
     run.state = RunState.PAUSED
+    return run
+
+
+def update_signal_plan(run: Run, plan: SignalPlan) -> Run:
+    # takes effect on the next tick (SignalController is stateless)
+    run.config.signal_plan = plan
+    if run.engine is not None:
+        run.engine.set_signal_plan(plan)
     return run
 
 
