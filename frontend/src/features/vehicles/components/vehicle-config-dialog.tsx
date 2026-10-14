@@ -7,7 +7,6 @@ import { X } from "lucide-react"
 import carIcon from "../assets/car.svg"
 import motorcycleIcon from "../assets/motorcycle.svg"
 import { useSimStore } from "@/features/simulation/store"
-import { toast } from "sonner"
 
 interface VehicleParams {
   maxSpeed: string
@@ -289,9 +288,6 @@ export function VehicleConfigDialog({
         <Button
           onClick={() => {
             if (!validateConfig()) {
-              toast.error("Validation Error", {
-                description: "Please fix the errors before saving.",
-              })
               return
             }
 
@@ -309,9 +305,6 @@ export function VehicleConfigDialog({
                   p_slow: Number(motorcycleConfig.randomSlowdown),
                 },
               },
-            })
-            toast.success("Vehicle Configuration Saved", {
-              description: "Vehicle parameters have been updated successfully.",
             })
             onOpenChange(false)
           }}

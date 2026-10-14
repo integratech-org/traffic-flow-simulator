@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select"
 import { X } from "lucide-react"
 import { useSimStore } from "@/features/simulation/store"
-import { toast } from "sonner"
 
 interface ScenarioSettings {
   day: string
@@ -89,9 +88,7 @@ export function ScenarioSettingsDialog({
   }
 
   const handleAddAccident = () => {
-    toast.info("Coming Soon", {
-      description: "Accident scenario configuration is not yet implemented.",
-    })
+    console.log("Add Accident feature coming soon")
   }
 
   const validateSettings = (): boolean => {
@@ -109,9 +106,6 @@ export function ScenarioSettingsDialog({
 
   const handleSave = () => {
     if (!validateSettings()) {
-      toast.error("Validation Error", {
-        description: "Please fix the errors before saving.",
-      })
       return
     }
 
@@ -132,9 +126,6 @@ export function ScenarioSettingsDialog({
         | "sunday",
       time: settings.time,
       weather_condition: weatherMap[settings.weather] || "clear",
-    })
-    toast.success("Scenario Settings Saved", {
-      description: "Simulation conditions have been updated successfully.",
     })
     onOpenChange(false)
   }

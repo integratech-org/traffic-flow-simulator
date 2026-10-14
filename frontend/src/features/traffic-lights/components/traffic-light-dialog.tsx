@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { X } from "lucide-react"
 import { useSimStore } from "@/features/simulation/store"
-import { toast } from "sonner"
 
 interface TrafficLightTiming {
   green: string
@@ -176,9 +175,6 @@ export function TrafficLightDialog({
 
   const handleSave = () => {
     if (!validateConfig()) {
-      toast.error("Validation Error", {
-        description: "Please fix the errors before saving.",
-      })
       return
     }
 
@@ -212,9 +208,6 @@ export function TrafficLightDialog({
           },
         ],
       },
-    })
-    toast.success("Traffic Light Configuration Saved", {
-      description: "Signal timings have been updated successfully.",
     })
     onOpenChange(false)
   }
