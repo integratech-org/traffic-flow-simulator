@@ -52,7 +52,7 @@ class VehicleMix(BaseModel):
     )
 
     @model_validator(mode="after")
-    def must_total_100(self):
+    def must_total_100(self) -> "VehicleMix":
         if abs(self.two_wheeler_pct + self.four_wheeler_pct - 100) > 0.01:
             raise ValueError("two_wheeler_pct + four_wheeler_pct must equal 100")
         return self
@@ -70,7 +70,7 @@ class VehicleParams(BaseModel):
     )
 
     @model_validator(mode="after")
-    def must_v_min_be_less_than_v_max(self):
+    def must_v_min_be_less_than_v_max(self) -> "VehicleParams":
         if self.v_min >= self.v_max:
             raise ValueError("v_min must be less than v_max")
         return self
@@ -141,7 +141,7 @@ class CreateRunRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def all_vehicle_types_present(self):
+    def all_vehicle_types_present(self) -> "CreateRunRequest":
         missing = set(VehicleType) - set(self.vehicle_params)
         if missing:
             raise ValueError(
