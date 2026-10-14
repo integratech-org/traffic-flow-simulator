@@ -1,5 +1,13 @@
 import { create } from "zustand"
-import type { CreateRunRequest, RunState, TickMessage } from "@/api/simulation"
+import type {
+  CreateRunRequest,
+  RunState,
+  TickMessage,
+  Accident,
+  AccidentSeverity,
+} from "@/api/simulation"
+
+export type { AccidentSeverity, Accident }
 
 export const DEFAULT_CONFIG: CreateRunRequest = {
   day_of_week: "monday",
@@ -53,6 +61,12 @@ interface SimStore {
     display: VehicleDisplay
   ) => void
 
+  // accidents
+  accidents: Accident[]
+  addAccident: (accident: Accident) => void
+  removeAccident: (id: string) => void
+  clearAccidents: () => void
+
   // live run state
   runId: string | null
   status: "idle" | RunState
@@ -75,6 +89,13 @@ export const useSimStore = create<SimStore>((set) => ({
       vehicleDisplay: { ...s.vehicleDisplay, [vehicleType]: display },
     })),
 
+  accidents: [],
+  addAccident: (accident) =>
+    set((s) => ({ accidents: [...s.accidents, accident] })),
+  removeAccident: (id) =>
+    set((s) => ({ accidents: s.accidents.filter((a) => a.id !== id) })),
+  clearAccidents: () => set({ accidents: [] }),
+
   runId: null,
   status: "idle",
   tick: null,
@@ -90,6 +111,7 @@ export const useSimStore = create<SimStore>((set) => ({
       return {
         tick,
         status: tick.state,
+        accidents: tick.accidents, // Sync accidents from backend
         queueHistory: sample
           ? [
               ...s.queueHistory,
@@ -102,5 +124,11 @@ export const useSimStore = create<SimStore>((set) => ({
       }
     }),
   clearRun: () =>
-    set({ runId: null, status: "idle", tick: null, queueHistory: [] }),
+    set({
+      runId: null,
+      status: "idle",
+      tick: null,
+      queueHistory: [],
+      accidents: [],
+    }),
 }))

@@ -37,6 +37,8 @@ SPAWN_RATE = {  # chance per tick, per entry lane
     DensityScenario.HEAVY: 0.14,
 }
 RAIN_EXTRA_P_SLOW = 0.10
+ACCIDENT_P_SLOW = 0.80  # Fixed: very strong slowdown effect (80%)
+ACCIDENT_RADIUS_METERS = 8  # Fixed: small radius (8 meters)
 FREE = 10_000  # "nothing ahead"
 EXIT_GAP = 20  # cells a lead vehicle sees past the end of an exit lane
 LIGHT_MAX, MODERATE_MAX = 0.15, 0.35  # density thresholds for congestion level
@@ -111,6 +113,8 @@ class TrafficEngine:
         self.rng = np.random.default_rng(config.seed)
         self.tick = 0
         self.next_vid = 0
+        self.accidents: list[Any] = []  # Will hold Accident objects
+        self.network = network  # Store network for coordinate lookups
 
         vp = config.vehicle_params
         car, moto = vp[VehicleType.CAR], vp[VehicleType.MOTORCYCLE]
@@ -143,6 +147,50 @@ class TrafficEngine:
     def set_signal_plan(self, plan: SignalPlan) -> None:
         self.signals.set_plan(plan)
 
+    def add_accident(self, accident: Any) -> None:
+        """Add an accident to the simulation."""
+        self.accidents.append(accident)
+
+    def remove_accident(self, accident_id: str) -> bool:
+        """Remove an accident by ID. Returns True if found and removed."""
+        before = len(self.accidents)
+        self.accidents = [a for a in self.accidents if a.id != accident_id]
+        return len(self.accidents) < before
+
+    def get_active_accidents(self) -> list[Any]:
+        """Get all currently active accidents, auto-cleanup expired ones."""
+        active = [a for a in self.accidents if a.is_active(self.tick)]
+        self.accidents = active
+        return active
+
+    def _is_vehicle_in_accident_zone(self, lane: LaneState, vehicle_idx: int) -> bool:
+        """Check if a vehicle is in any accident zone. Returns True if yes."""
+        if not self.accidents:
+            return False
+
+        # Get vehicle's position on the lane
+        cell_idx = int(lane.pos[vehicle_idx])
+        if cell_idx >= len(self.network.lanes[lane.id].cellCoords):
+            return False
+
+        # ACCIDENT_FIX: network.json stores coords as [longitude, latitude]
+        # Must unpack in correct order: lon first, lat second
+        lon, lat = self.network.lanes[lane.id].cellCoords[cell_idx]
+
+        # Check each active accident
+        for accident in self.get_active_accidents():
+            # ACCIDENT_FIX: Calculate distance using correct coordinate order
+            # accident.lat and accident.lon are in standard geographic order
+            # Rough approximation: 1 degree lat/lon ≈ 111km
+            lat_diff = abs(lat - accident.lat) * 111000
+            lon_diff = abs(lon - accident.lon) * 111000
+            dist = np.sqrt(lat_diff**2 + lon_diff**2)
+
+            if dist <= ACCIDENT_RADIUS_METERS:
+                return True
+
+        return False
+
     # ---- one NaSch tick ----
     def step(self) -> None:
         # Pass 1: new speeds for every lane, computed from the OLD state
@@ -163,8 +211,16 @@ class TrafficEngine:
 
             v = np.minimum(lane.spd + 1, self.vmax[vt])  # 1. accelerate
             v = np.minimum(v, gap)  # 2. no collision
-            slow = (self.rng.random(lane.n) < self.pslow[vt]) & (v > 0)
-            v = v - slow  # 3. random slowdown
+
+            # 3. random slowdown (base + accident-affected)
+            pslow_effective = np.full(lane.n, self.pslow[vt[0]], dtype=float)
+            for i in range(lane.n):
+                in_accident_zone = self._is_vehicle_in_accident_zone(lane, i)
+                if in_accident_zone:
+                    pslow_effective[i] = min(pslow_effective[i] + ACCIDENT_P_SLOW, 1.0)
+
+            slow = (self.rng.random(lane.n) < pslow_effective) & (v > 0)
+            v = v - slow
             v = np.maximum(v, np.minimum(self.vmin[vt], gap))  # optional min speed
             new_speed[lane.id] = v
 
@@ -258,6 +314,17 @@ class TrafficEngine:
             "congestion": congestion,
             "signals": signals,
             "metrics": self.metrics(),
+            "accidents": [
+                {
+                    "id": a.id,
+                    "lat": a.lat,
+                    "lon": a.lon,
+                    "severity": a.severity.value,
+                    "duration_seconds": a.duration_seconds,
+                    "created_at_tick": a.created_at_tick,
+                }
+                for a in self.get_active_accidents()
+            ],
         }
 
     def metrics(self) -> dict[str, float]:
