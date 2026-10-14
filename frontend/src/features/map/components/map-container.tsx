@@ -2,7 +2,6 @@ import { useNetwork } from "@/features/map/hooks/use-network"
 import { MapContainer as LeafletMap, TileLayer } from "react-leaflet"
 import { MapControls } from "./map-controls"
 import { ZoomControls } from "./zoom-controls"
-import { MapLegend } from "@/features/analytics/components/legend"
 import { MetricsSidebar } from "@/features/analytics/components/metrics-sidebar"
 import { TrafficLightDialog } from "@/features/traffic-lights/components/traffic-light-dialog"
 import { VehicleConfigDialog } from "@/features/vehicles/components/vehicle-config-dialog"
@@ -132,7 +131,7 @@ function MapContainer() {
       </LeafletMap>
 
       {/* Legend (outside map) */}
-      <MapLegend />
+      {/* Moved to ZoomControls as a popover */}
     </div>
   )
 }
