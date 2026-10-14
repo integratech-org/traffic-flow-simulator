@@ -1,10 +1,19 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Search, Lightbulb, Car, Settings2, ChartPie } from "lucide-react"
+import {
+  Search,
+  Lightbulb,
+  Car,
+  Settings2,
+  ChartPie,
+  Square,
+} from "lucide-react"
 
 interface MapControlsProps {
   onRunSimulation?: () => void
+  onStop?: () => void
+  runStatus?: "idle" | "created" | "running" | "paused"
   onReset?: () => void
   onTrafficLightClick?: () => void
   onVehicleClick?: () => void
@@ -18,6 +27,8 @@ interface MapControlsProps {
 
 export function MapControls({
   onRunSimulation,
+  onStop,
+  runStatus = "idle",
   onReset,
   onTrafficLightClick,
   onVehicleClick,
@@ -92,12 +103,28 @@ export function MapControls({
 
           <Separator orientation="vertical" className="mx-1 h-8" />
 
+          {runStatus !== "idle" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-10 rounded-full hover:bg-muted"
+              title="Stop and reset"
+              onClick={onStop}
+            >
+              <Square className="size-5" />
+            </Button>
+          )}
+
           <Button
             variant="default"
             className="h-10 rounded-full bg-[#0D1628] px-6 text-sm font-medium text-white hover:bg-[#0D1628]/90"
             onClick={onRunSimulation}
           >
-            Run Simulation
+            {runStatus === "running"
+              ? "Pause"
+              : runStatus === "paused"
+                ? "Resume"
+                : "Run Simulation"}
           </Button>
         </div>
       </div>

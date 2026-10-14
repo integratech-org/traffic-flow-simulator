@@ -2,9 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function MapLegend() {
   return (
-    <Card className="absolute right-4 bottom-12 z-[1000] w-[340px]">
-      <CardHeader>
-        <CardTitle>Road Indicator</CardTitle>
+    <Card className="w-[240px] shadow-xl">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">Road Indicator</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Gradient Bar */}

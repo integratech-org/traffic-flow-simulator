@@ -1,18 +1,21 @@
 import { useNetwork } from "@/features/map/hooks/use-network"
-import { MapContainer as LeafletMap, Polyline, TileLayer } from "react-leaflet"
+import { MapContainer as LeafletMap, TileLayer } from "react-leaflet"
 import { MapControls } from "./map-controls"
 import { ZoomControls } from "./zoom-controls"
-import { MapLegend } from "@/features/analytics/components/legend"
 import { MetricsSidebar } from "@/features/analytics/components/metrics-sidebar"
 import { TrafficLightDialog } from "@/features/traffic-lights/components/traffic-light-dialog"
 import { VehicleConfigDialog } from "@/features/vehicles/components/vehicle-config-dialog"
 import { ScenarioSettingsDialog } from "@/features/settings/components/scenario-settings-dialog"
 import { DirectionMarkers } from "./direction-markers"
 import { useState } from "react"
+import { SimulationLayers } from "@/features/simulation/components/simulation-layers"
+import { useSimulationControls } from "@/features/simulation/hooks/use-simulation-controls"
+import { useTickStream } from "@/features/simulation/hooks/use-tick-stream"
 
 function MapContainer() {
-  const { lanes, errors } = useNetwork()
-  const [isSimulating, setIsSimulating] = useState(false)
+  const { laneById, errors } = useNetwork()
+  const { status, toggle, reset } = useSimulationControls()
+  useTickStream() // pass "car" | "motorcycle" to filter by vehicle type
   const [isTrafficLightDialogOpen, setIsTrafficLightDialogOpen] =
     useState(false)
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false)
@@ -22,17 +25,7 @@ function MapContainer() {
     "north" | "south" | "east" | "west"
   >("north")
 
-  const handleRunSimulation = () => {
-    setIsSimulating(!isSimulating)
-    console.log("Simulation toggled:", !isSimulating)
-    // TODO: Start/stop simulation logic
-  }
-
-  const handleReset = () => {
-    setIsSimulating(false)
-    setIsMetricsSidebarOpen(!isMetricsSidebarOpen)
-    console.log("Metrics sidebar toggled:", !isMetricsSidebarOpen)
-  }
+  const handleMetricsToggle = () => setIsMetricsSidebarOpen((open) => !open)
 
   const handleTrafficLightClick = () => {
     setIsTrafficLightDialogOpen(true)
@@ -75,8 +68,10 @@ function MapContainer() {
 
       {/* Top Controls */}
       <MapControls
-        onRunSimulation={handleRunSimulation}
-        onReset={handleReset}
+        onRunSimulation={toggle}
+        onStop={reset}
+        runStatus={status}
+        onReset={handleMetricsToggle}
         onTrafficLightClick={handleTrafficLightClick}
         onVehicleClick={handleVehicleClick}
         onSettingsClick={handleSettingsClick}
@@ -113,22 +108,14 @@ function MapContainer() {
         center={junctionCenter}
         zoom={17}
         zoomControl={false} // Disable default zoom controls
+        preferCanvas // ~250 vehicle markers updating 10x/sec: canvas, not SVG
       >
         <TileLayer
           attribution='&copy; <a href="https://stadiamaps.com/attribution/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
           url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
         />
 
-        {lanes?.map((lane) => (
-          <Polyline
-            key={`${lane.legId}_${lane.direction}_${lane.laneIndex}`}
-            positions={lane.cellCoords.map(([lng, lat]) => [lat, lng])}
-            pathOptions={{
-              color: lane.direction === "inbound" ? "#3388ff" : "#888",
-              weight: 3,
-            }}
-          />
-        ))}
+        {laneById && <SimulationLayers laneById={laneById} />}
 
         {/* Direction Markers - Only visible when traffic light dialog is open */}
         {isTrafficLightDialogOpen && (
@@ -144,7 +131,7 @@ function MapContainer() {
       </LeafletMap>
 
       {/* Legend (outside map) */}
-      <MapLegend />
+      {/* Moved to ZoomControls as a popover */}
     </div>
   )
 }

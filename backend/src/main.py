@@ -10,6 +10,7 @@ from src.network import router as network_router
 from src.network.schemas import Network
 from src.network.service import load_network_data
 from src.schemas import HealthResponse
+from src.simulation import router as simulation_router
 
 
 class State(TypedDict):
@@ -36,6 +37,7 @@ def get_app() -> FastAPI:
     )
 
     app.include_router(network_router.router)
+    app.include_router(simulation_router.router)
 
     @app.get("/health", response_model=HealthResponse, tags=["Health"])
     async def health_check() -> HealthResponse:
