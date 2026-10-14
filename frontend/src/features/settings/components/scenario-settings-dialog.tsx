@@ -22,6 +22,26 @@ interface ScenarioSettings {
   scenario: string
 }
 
+function pad2(n: number): string {
+  return String(n).padStart(2, "0")
+}
+
+function from24h(hhmm: string): { time: string; timePeriod: "AM" | "PM" } {
+  const [hourStr = "0", minuteStr = "00"] = hhmm.split(":")
+  const hour24 = Number(hourStr)
+  const timePeriod: "AM" | "PM" = hour24 >= 12 ? "PM" : "AM"
+  const hour12 = hour24 % 12 || 12
+  return { time: `${pad2(hour12)}:${pad2(Number(minuteStr) || 0)}`, timePeriod }
+}
+
+function to24h(time: string, timePeriod: "AM" | "PM"): string {
+  const [hourStr = "0", minuteStr = "00"] = time.split(":")
+  let hour = Number(hourStr)
+  if (timePeriod === "PM" && hour !== 12) hour += 12
+  if (timePeriod === "AM" && hour === 12) hour = 0
+  return `${pad2(hour)}:${pad2(Number(minuteStr) || 0)}`
+}
+
 interface ScenarioSettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -46,25 +66,29 @@ export function ScenarioSettingsDialog({
     rainy: "Rainy",
   }
 
-  const [settings, setSettings] = useState<ScenarioSettings>(() => ({
-    day:
-      simConfig.day_of_week.charAt(0).toUpperCase() +
-      simConfig.day_of_week.slice(1),
-    time: simConfig.time,
-    timePeriod: "AM",
-    weather: weatherDisplayMap[simConfig.weather_condition] || "Sunny",
-    scenario: "",
-  }))
+  const [settings, setSettings] = useState<ScenarioSettings>(() => {
+    const clock = from24h(simConfig.time)
+    return {
+      day:
+        simConfig.day_of_week.charAt(0).toUpperCase() +
+        simConfig.day_of_week.slice(1),
+      time: clock.time,
+      timePeriod: clock.timePeriod,
+      weather: weatherDisplayMap[simConfig.weather_condition] || "Sunny",
+      scenario: "",
+    }
+  })
 
   // Sync with store when dialog opens
   useEffect(() => {
     if (open) {
+      const clock = from24h(simConfig.time)
       setSettings({
         day:
           simConfig.day_of_week.charAt(0).toUpperCase() +
           simConfig.day_of_week.slice(1),
-        time: simConfig.time,
-        timePeriod: "AM",
+        time: clock.time,
+        timePeriod: clock.timePeriod,
         weather: weatherDisplayMap[simConfig.weather_condition] || "Sunny",
         scenario: "",
       })
@@ -98,8 +122,8 @@ export function ScenarioSettingsDialog({
   const validateSettings = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    // Validate time format (HH:MM)
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+    // Validate 12-hour time (HH:MM)
+    const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]$/
     if (!timeRegex.test(settings.time)) {
       newErrors.time = "Invalid time format. Use HH:MM (e.g., 08:30)"
     }
@@ -114,8 +138,9 @@ export function ScenarioSettingsDialog({
     }
 
     // Map frontend values to backend schema
-    const weatherMap: Record<string, "clear" | "rainy"> = {
+    const weatherMap: Record<string, "clear" | "cloudy" | "rainy"> = {
       Sunny: "clear",
+      Cloudy: "cloudy",
       Rainy: "rainy",
     }
 
@@ -128,7 +153,7 @@ export function ScenarioSettingsDialog({
         | "friday"
         | "saturday"
         | "sunday",
-      time: settings.time,
+      time: to24h(settings.time, settings.timePeriod),
       weather_condition: weatherMap[settings.weather] || "clear",
     })
     onOpenChange(false)
@@ -195,9 +220,18 @@ export function ScenarioSettingsDialog({
               onChange={(e) => handleChange("time", e.target.value)}
               className={`h-11 pr-16 ${errors.time ? "border-red-500 focus-visible:ring-red-500" : ""}`}
             />
-            <span className="absolute top-1/2 right-3 -translate-y-1/2 text-sm text-foreground">
+            <button
+              type="button"
+              className="absolute top-1/2 right-3 -translate-y-1/2 text-sm text-foreground hover:underline"
+              onClick={() =>
+                handleChange(
+                  "timePeriod",
+                  settings.timePeriod === "AM" ? "PM" : "AM"
+                )
+              }
+            >
               {settings.timePeriod}
-            </span>
+            </button>
           </div>
           {errors.time && <p className="text-sm text-red-500">{errors.time}</p>}
         </div>
@@ -221,6 +255,7 @@ export function ScenarioSettingsDialog({
               alignItemWithTrigger={false}
             >
               <SelectItem value="Sunny">Sunny</SelectItem>
+              <SelectItem value="Cloudy">Cloudy</SelectItem>
               <SelectItem value="Rainy">Rainy</SelectItem>
             </SelectContent>
           </Select>

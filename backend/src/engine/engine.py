@@ -6,12 +6,12 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
+from src.engine.demand import spawn_rate as scenario_spawn_rate
 from src.engine.signals import SignalController
 from src.network.schemas import Lane as NetworkLane
 from src.network.schemas import Network
 from src.simulation.schemas import (
     CreateRunRequest,
-    DensityScenario,
     SignalPlan,
     VehicleType,
     WeatherCondition,
@@ -31,11 +31,6 @@ LEG_SIGNAL = {
     "commonwealth_ne": "S4",
 }
 
-SPAWN_RATE = {  # chance per tick, per entry lane
-    DensityScenario.LIGHT: 0.04,
-    DensityScenario.MODERATE: 0.08,
-    DensityScenario.HEAVY: 0.14,
-}
 RAIN_EXTRA_P_SLOW = 0.10
 ACCIDENT_P_SLOW = 0.80  # Fixed: very strong slowdown effect (80%)
 ACCIDENT_RADIUS_METERS = 8  # Fixed: small radius (8 meters)
@@ -136,7 +131,7 @@ class TrafficEngine:
         )
         self.pslow = np.clip([car.p_slow + extra, moto.p_slow + extra], 0, 1)
 
-        self.spawn_rate = SPAWN_RATE[config.density_scenario]
+        self.spawn_rate = scenario_spawn_rate(config)
         self.moto_share = config.vehicle_mix.two_wheeler_pct / 100
 
         self.exited = {CAR: 0, MOTO: 0}
