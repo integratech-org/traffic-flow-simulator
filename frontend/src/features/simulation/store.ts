@@ -22,6 +22,20 @@ export const DEFAULT_CONFIG: CreateRunRequest = {
   seed: null,
 }
 
+// Vehicle display configuration (frontend-only, not sent to backend)
+export interface VehicleDisplay {
+  color: string
+  size: number // radius in pixels
+}
+
+export const DEFAULT_VEHICLE_DISPLAY: Record<
+  "car" | "motorcycle",
+  VehicleDisplay
+> = {
+  car: { color: "#3b82f6", size: 4 }, // Blue
+  motorcycle: { color: "#ec4899", size: 3 }, // Pink
+}
+
 export interface QueuePoint {
   t: number // simulated seconds
   queue: number // vehicles currently stopped
@@ -31,6 +45,13 @@ interface SimStore {
   // what the dialogs edit; sent as the body of POST /simulation/runs
   config: CreateRunRequest
   patchConfig: (patch: Partial<CreateRunRequest>) => void
+
+  // vehicle display config (frontend-only)
+  vehicleDisplay: Record<"car" | "motorcycle", VehicleDisplay>
+  setVehicleDisplay: (
+    vehicleType: "car" | "motorcycle",
+    display: VehicleDisplay
+  ) => void
 
   // live run state
   runId: string | null
@@ -47,6 +68,12 @@ interface SimStore {
 export const useSimStore = create<SimStore>((set) => ({
   config: DEFAULT_CONFIG,
   patchConfig: (patch) => set((s) => ({ config: { ...s.config, ...patch } })),
+
+  vehicleDisplay: DEFAULT_VEHICLE_DISPLAY,
+  setVehicleDisplay: (vehicleType, display) =>
+    set((s) => ({
+      vehicleDisplay: { ...s.vehicleDisplay, [vehicleType]: display },
+    })),
 
   runId: null,
   status: "idle",

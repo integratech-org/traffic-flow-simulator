@@ -100,14 +100,17 @@ export function SimulationLayers({
       {tick?.vehicles.map((v) => {
         const coord = laneById[v.lane_id]?.cellCoords[v.cell]
         if (!coord) return null
+
+        const vehicleDisplay = useSimStore.getState().vehicleDisplay[v.type]
+
         return (
           <CircleMarker
             key={v.id}
             center={toLatLng(coord)}
-            radius={v.type === "car" ? 4 : 3}
+            radius={vehicleDisplay.size}
             pathOptions={{
               stroke: false,
-              fillColor: v.type === "car" ? "#38bdf8" : "#f472b6",
+              fillColor: vehicleDisplay.color,
               fillOpacity: 0.95,
             }}
           />
