@@ -12,7 +12,7 @@
 <div align="center">
   <a href="https://github.com/anthonyA1214/traffic-flow-simulator">
     <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a> <h3 align="center">Traffic Flow Simulator</h3>
+  </a> <h3 align="center">TALA - Traffic Analysis and Light Allocation</h3>
 
   <p align="center">
     A cellular-automaton traffic simulator (Nagel-Schreckenberg model) driven by real intersection geometry, built for signal-timing optimization experiments.

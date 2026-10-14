@@ -50,13 +50,9 @@ export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
           <div className="border-b p-6">
             <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <img
-                  src="/favicon-32x32.png"
-                  alt="Traffic Flow Simulation"
-                  className="size-6"
-                />
+                <img src="/favicon-32x32.png" alt="TALA" className="size-6" />
                 <span className="text-sm font-medium">
-                  Traffic Flow Simulation
+                  TALA - Traffic Analysis and Light Allocation
                 </span>
               </div>
               <Button
