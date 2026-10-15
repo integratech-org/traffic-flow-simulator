@@ -26,6 +26,12 @@ class DensityScenario(str, Enum):
     HEAVY = "heavy"
 
 
+class AccidentSeverity(str, Enum):
+    LIGHT = "light"
+    MODERATE = "moderate"
+    SEVERE = "severe"
+
+
 class VehicleType(str, Enum):
     CAR = "car"  # four wheeled vehicle
     MOTORCYCLE = "motorcycle"  # two wheeled vehicle
@@ -193,6 +199,27 @@ class Metrics(BaseModel):
     four_wheeler_pct: float
 
 
+class Accident(BaseModel):
+    # ACCIDENT_FIX: Coordinates are stored in standard geographic order
+    # lat = latitude (Y-axis, North-South, typically 14.xx for Manila)
+    # lon = longitude (X-axis, East-West, typically 121.xx for Manila)
+    # Note: network.json stores as [lon, lat] but Accident uses {lat, lon}
+    id: str = Field(..., description="Unique identifier for the accident")
+    lat: float = Field(..., description="Latitude of the accident location")
+    lon: float = Field(..., description="Longitude of the accident location")
+    severity: AccidentSeverity = Field(..., description="Severity of the accident")
+    duration_seconds: int = Field(
+        ..., ge=1, description="Duration of the accident in seconds"
+    )
+    created_at_tick: int = Field(
+        ..., ge=0, description="Tick when the accident was created"
+    )
+
+    def is_active(self, current_tick: int) -> bool:
+        """Check if the accident is still active at the given tick."""
+        return current_tick < self.created_at_tick + self.duration_seconds
+
+
 class TickMessage(BaseModel):
     run_id: str
     state: RunState
@@ -201,3 +228,4 @@ class TickMessage(BaseModel):
     congestion: list[LaneCongestion] = []
     signals: list[SignalStatus] = []
     metrics: Metrics | None = None
+    accidents: list[Accident] = []

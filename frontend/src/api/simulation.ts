@@ -9,6 +9,7 @@ export type VehicleType = "car" | "motorcycle"
 export type RunState = "created" | "running" | "paused"
 export type CongestionLevel = "light" | "moderate" | "heavy"
 export type Phase = "green" | "yellow" | "red"
+export type AccidentSeverity = "light" | "moderate" | "severe"
 
 export interface VehicleParams {
   v_max: number // m/s, int 1..20
@@ -82,6 +83,15 @@ export interface Metrics {
   four_wheeler_pct: number
 }
 
+export interface Accident {
+  id: string
+  lat: number
+  lon: number
+  severity: AccidentSeverity
+  duration_seconds: number
+  created_at_tick: number
+}
+
 export interface TickMessage {
   run_id: string
   state: RunState
@@ -90,6 +100,7 @@ export interface TickMessage {
   congestion: LaneCongestion[]
   signals: SignalStatus[]
   metrics: Metrics | null
+  accidents: Accident[]
 }
 
 const send = (method: string, body?: unknown): RequestInit => ({
@@ -114,4 +125,19 @@ export const updateSignalPlan = (id: string, plan: SignalPlan) =>
   fetchJson<RunStateResponse>(
     `/simulation/runs/${id}/signal-plan`,
     send("PUT", plan)
+  )
+
+export const addAccident = (runId: string, accident: Accident) =>
+  fetchJson<Accident>(
+    `/simulation/runs/${runId}/accidents`,
+    send("POST", accident)
+  )
+
+export const getAccidents = (runId: string) =>
+  fetchJson<Accident[]>(`/simulation/runs/${runId}/accidents`, send("GET"))
+
+export const deleteAccident = (runId: string, accidentId: string) =>
+  fetchJson<void>(
+    `/simulation/runs/${runId}/accidents/${accidentId}`,
+    send("DELETE")
   )

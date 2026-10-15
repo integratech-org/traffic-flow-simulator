@@ -6,6 +6,7 @@ import { MetricsSidebar } from "@/features/analytics/components/metrics-sidebar"
 import { TrafficLightDialog } from "@/features/traffic-lights/components/traffic-light-dialog"
 import { VehicleConfigDialog } from "@/features/vehicles/components/vehicle-config-dialog"
 import { ScenarioSettingsDialog } from "@/features/settings/components/scenario-settings-dialog"
+import { AccidentPlacementDialog } from "@/features/accidents/components/accident-placement-dialog"
 import { DirectionMarkers } from "./direction-markers"
 import { useState } from "react"
 import { SimulationLayers } from "@/features/simulation/components/simulation-layers"
@@ -20,6 +21,7 @@ function MapContainer() {
     useState(false)
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false)
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
+  const [isAccidentDialogOpen, setIsAccidentDialogOpen] = useState(false)
   const [isMetricsSidebarOpen, setIsMetricsSidebarOpen] = useState(false)
   const [activeDirection, setActiveDirection] = useState<
     "north" | "south" | "east" | "west"
@@ -43,6 +45,12 @@ function MapContainer() {
     setIsSettingsDialogOpen(true)
     setIsTrafficLightDialogOpen(false)
     setIsVehicleDialogOpen(false)
+  }
+
+  const handleAddAccidentFromSettings = () => {
+    console.log("Add Accident clicked - opening dialog")
+    setIsAccidentDialogOpen(true)
+    // Keep settings dialog open so user can return to it
   }
 
   if (errors) {
@@ -100,6 +108,13 @@ function MapContainer() {
       <ScenarioSettingsDialog
         open={isSettingsDialogOpen}
         onOpenChange={setIsSettingsDialogOpen}
+        onAddAccidentClick={handleAddAccidentFromSettings}
+      />
+
+      {/* Accident Placement Dialog */}
+      <AccidentPlacementDialog
+        open={isAccidentDialogOpen}
+        onOpenChange={setIsAccidentDialogOpen}
       />
 
       {/* Map Container */}

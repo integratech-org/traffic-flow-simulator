@@ -25,11 +25,13 @@ interface ScenarioSettings {
 interface ScenarioSettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onAddAccidentClick?: () => void
 }
 
 export function ScenarioSettingsDialog({
   open,
   onOpenChange,
+  onAddAccidentClick,
 }: ScenarioSettingsDialogProps) {
   const simConfig = useSimStore((s) => s.config)
   const patchConfig = useSimStore((s) => s.patchConfig)
@@ -88,7 +90,9 @@ export function ScenarioSettingsDialog({
   }
 
   const handleAddAccident = () => {
-    console.log("Add Accident feature coming soon")
+    if (onAddAccidentClick) {
+      onAddAccidentClick()
+    }
   }
 
   const validateSettings = (): boolean => {

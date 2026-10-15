@@ -10,6 +10,7 @@ from src.engine.engine import TrafficEngine
 from src.network.schemas import Network
 from src.simulation.models import Run
 from src.simulation.schemas import (
+    Accident,
     CreateRunRequest,
     RunState,
     SignalPlan,
@@ -83,6 +84,26 @@ def update_signal_plan(run: Run, plan: SignalPlan) -> Run:
     if run.engine is not None:
         run.engine.set_signal_plan(plan)
     return run
+
+
+def add_accident(run: Run, accident: Accident) -> Accident:
+    """Add an accident to the simulation."""
+    if run.engine is not None:
+        run.engine.add_accident(accident)
+    return accident
+
+
+def get_accidents(run: Run) -> list[Accident]:
+    """Get all active accidents."""
+    if run.engine is not None:
+        return run.engine.get_active_accidents()
+    return []
+
+
+def remove_accident(run: Run, accident_id: str) -> None:
+    """Remove an accident from the simulation."""
+    if run.engine is not None:
+        run.engine.remove_accident(accident_id)
 
 
 async def delete_run(run: Run) -> None:

@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react"
-import { CircleMarker, Polyline } from "react-leaflet"
+import { CircleMarker, Polyline, Marker, Circle } from "react-leaflet"
 import type { CongestionLevel, Phase } from "@/api/simulation"
 import type { Lane } from "@/features/map/api/get-network"
 import { useSimStore } from "../store"
@@ -14,6 +14,8 @@ const PHASE_COLOR: Record<Phase, string> = {
   yellow: "#eab308",
   red: "#ef4444",
 }
+const ACCIDENT_COLOR = "#ef4444" // Red
+const ACCIDENT_RADIUS = 8 // meters
 const IDLE_COLOR = { inbound: "#3388ff", outbound: "#888" } as const
 
 // network.json is [lng, lat]; Leaflet wants [lat, lng]
@@ -35,6 +37,7 @@ export function SimulationLayers({
   laneById: Record<string, Lane>
 }) {
   const tick = useSimStore((s) => s.tick)
+  const accidents = useSimStore((s) => s.accidents)
 
   const laneLines = useMemo(
     () =>
@@ -114,6 +117,33 @@ export function SimulationLayers({
               fillOpacity: 0.95,
             }}
           />
+        )
+      })}
+
+      {/* Accident Markers and Zones */}
+      {accidents.map((accident) => {
+        // Filter out expired accidents (if tick data is available)
+        if (
+          tick &&
+          tick.tick >= accident.created_at_tick + accident.duration_seconds
+        ) {
+          return null
+        }
+
+        return (
+          <div key={accident.id}>
+            <Marker position={[accident.lat, accident.lon]} />
+            <Circle
+              center={[accident.lat, accident.lon]}
+              radius={ACCIDENT_RADIUS}
+              pathOptions={{
+                color: ACCIDENT_COLOR,
+                fillColor: ACCIDENT_COLOR,
+                fillOpacity: 0.2,
+                weight: 2,
+              }}
+            />
+          </div>
         )
       })}
     </>

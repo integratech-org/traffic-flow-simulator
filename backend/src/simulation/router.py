@@ -13,6 +13,7 @@ from src.simulation import service
 from src.simulation.dependencies import valid_run_id
 from src.simulation.models import Run
 from src.simulation.schemas import (
+    Accident,
     CreateRunRequest,
     RunStateResponse,
     SignalPlan,
@@ -54,6 +55,23 @@ async def pause_run(run: RunDep) -> RunStateResponse:
 @router.put("/runs/{run_id}/signal-plan", response_model=RunStateResponse)
 async def update_signal_plan(run: RunDep, plan: SignalPlan) -> RunStateResponse:
     return RunStateResponse.model_validate(service.update_signal_plan(run, plan))
+
+
+@router.post("/runs/{run_id}/accidents", status_code=status.HTTP_201_CREATED)
+async def add_accident(run: RunDep, accident: Accident) -> Accident:
+    return service.add_accident(run, accident)
+
+
+@router.get("/runs/{run_id}/accidents", response_model=list[Accident])
+async def get_accidents(run: RunDep) -> list[Accident]:
+    return service.get_accidents(run)
+
+
+@router.delete(
+    "/runs/{run_id}/accidents/{accident_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_accident(run: RunDep, accident_id: str) -> None:
+    service.remove_accident(run, accident_id)
 
 
 @router.delete("/runs/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
