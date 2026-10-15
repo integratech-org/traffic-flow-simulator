@@ -27,8 +27,14 @@ const chartConfig = {
 export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
   const metrics = useSimStore((s) => s.tick?.metrics)
   const queueHistory = useSimStore((s) => s.queueHistory)
+
+  // Convert tick seconds to minutes for display
   const queueData = useMemo(
-    () => queueHistory.map((p) => ({ time: `${p.t}s`, queue: p.queue })),
+    () =>
+      queueHistory.map((p) => ({
+        time: `${Math.floor(p.t / 60)}:${String(p.t % 60).padStart(2, "0")}`,
+        queue: p.queue,
+      })),
     [queueHistory]
   )
 
@@ -148,6 +154,7 @@ export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
                       axisLine={false}
                       tickMargin={8}
                       tick={{ fontSize: 12, fill: "#6b7280" }}
+                      interval="preserveStartEnd"
                     />
                     <YAxis
                       tickLine={false}
@@ -163,6 +170,7 @@ export function MetricsSidebar({ open, onClose }: MetricsSidebarProps) {
                       stroke="#0D1628"
                       strokeWidth={2}
                       dot={false}
+                      isAnimationActive={false}
                     />
                   </LineChart>
                 </ChartContainer>
