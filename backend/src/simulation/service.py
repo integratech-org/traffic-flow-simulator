@@ -21,7 +21,9 @@ from src.simulation.schemas import (
 logger = logging.getLogger(__name__)
 
 RUNS: dict[str, Run] = {}
-TICK_INTERVAL = 0.1  # seconds of real time between ticks (10 ticks/sec)
+TICK_INTERVAL = (
+    0.5  # seconds of real time between ticks (2 ticks/sec for smoother visualization)
+)
 
 
 # ---------- lifecycle ----------

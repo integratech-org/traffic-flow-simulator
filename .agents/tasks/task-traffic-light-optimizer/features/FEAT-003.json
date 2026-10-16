@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Create FastAPI router for optimization endpoint and register it in main.py. Add API documentation in router docstrings. This feature exposes the optimizer via REST API and integrates it into the FastAPI application. Independent of FEAT-001 and FEAT-002 (uses their exports).",
+  "status": "completed",
+  "steps": [
+    "1. Create backend/src/optimizer/router.py with imports: fastapi (APIRouter, Request), src.optimizer.schemas (OptimizationRequest, OptimizationResult), src.optimizer.service (run_optimization). Initialize router = APIRouter(prefix='/optimization', tags=['Optimization'])",
+    "2. In backend/src/optimizer/router.py, implement @router.post('/optimize', response_model=OptimizationResult) async def optimize_signal_plan(req: OptimizationRequest, request: Request) -> OptimizationResult. Extract network_data = request.state.network_data (available via lifespan context in main.py). Call service.run_optimization(req, network_data) and return result. Add comprehensive docstring explaining: endpoint purpose (long-running GA optimization), typical runtime (5-60s), parameters (population_size, generations, ticks_per_eval, weights, seed), and return value (best_signal_plan with metrics)",
+    "3. In backend/src/main.py, add import: 'from src.optimizer import router as optimizer_router'. After existing app.include_router calls (network_router, simulation_router), add 'app.include_router(optimizer_router.router)' to register the optimizer endpoint",
+    "4. Write integration test in backend/tests/test_optimizer_api.py using unittest.TestCase. Test should: import TestClient from fastapi.testclient, import app from src.main, create client = TestClient(app), send POST /optimization/optimize with minimal request body (base_config with defaults, population_size=4, generations=2, ticks_per_eval=100, default weights). Assert response.status_code == 200, response.json() contains 'best_signal_plan' key with 'signal_timers' list of 4 elements, 'best_metrics' with throughput/avg_wait/max_queue/fitness keys, 'elapsed_seconds' > 0, 'total_evaluations' == 8",
+    "5. Manually test the endpoint: start backend with 'uv run fastapi dev src/main.py', send curl POST to http://localhost:8000/optimization/optimize with realistic parameters (population_size=10, generations=5, ticks_per_eval=300), verify response contains valid best_signal_plan and metrics show improvement over default (log this finding in FEAT-003 findings field). Test with seed=42 twice to verify reproducibility",
+    "6. Add docstring to backend/src/optimizer/__init__.py module explaining the optimizer's purpose: 'Genetic algorithm optimizer for traffic signal timing. Searches for signal plans that maximize throughput and minimize wait time and queue length. Main entry point: POST /optimization/optimize endpoint.'"
+  ],
+  "acceptance_criteria": [
+    "backend/src/optimizer/router.py exists with POST /optimization/optimize endpoint",
+    "Endpoint registered in backend/src/main.py via app.include_router(optimizer_router.router)",
+    "Endpoint is accessible at http://localhost:8000/optimization/optimize when backend is running",
+    "POST request with OptimizationRequest body returns 200 status with OptimizationResult JSON containing best_signal_plan, best_metrics, elapsed_seconds, total_evaluations",
+    "Integration test in backend/tests/test_optimizer_api.py passes (TestClient request returns 200, response structure is valid)",
+    "Manual curl test with realistic parameters completes successfully and returns optimized signal plan",
+    "Sending same seed twice produces identical best_signal_plan (reproducibility verified)",
+    "Running 'python -m unittest tests.test_optimizer_api' passes"
+  ],
+  "verification": [
+    "cd /home/anton/Projects/traffic-flow-simulator/backend && python -m unittest tests.test_optimizer_api",
+    "cd /home/anton/Projects/traffic-flow-simulator/backend && uv run fastapi dev src/main.py & sleep 3 && curl -X POST http://localhost:8000/optimization/optimize -H 'Content-Type: application/json' -d '{\"base_config\": {}, \"population_size\": 4, \"generations\": 2, \"ticks_per_eval\": 100}' && kill %1"
+  ],
+  "blocked_reason": null,
+  "findings": "All integration tests pass successfully. API endpoint properly integrated with FastAPI application via optimizer_router registration in main.py. TestClient requires context manager (with TestClient(app) as client:) to properly invoke lifespan and initialize network_data in request.state. All 5 tests pass: valid result structure, reproducibility with same seed, custom weights, validation of invalid population_size, and validation of zero weights. Optimization with seed=42 produces deterministic results across multiple runs. Typical runtime for small tests (pop=4, gen=2, ticks=100) is under 1 second. Comprehensive docstring in router.py documents endpoint purpose, parameters, return values, and provides example request/response JSON."
+}

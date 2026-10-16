@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Create optimizer module structure with schemas, gene conversion helpers, and genetic algorithm core logic (selection, crossover, mutation). This feature establishes the foundation: parameter bounds, gene-to-SignalPlan conversion (with sorting validation per MEDIUM-2), and GA operators (elite selection, tournament, single-point crossover, Gaussian mutation). Does NOT include parallel execution or fitness evaluation workers - those are in FEAT-002.",
+  "status": "completed",
+  "steps": [
+    "1. Create backend/src/optimizer/__init__.py with __all__ = ['router', 'service', 'schemas', 'engine'] exports",
+    "2. Create backend/src/optimizer/schemas.py with OptimizationRequest (includes base_config, population_size ge=4 le=100, generations ge=1 le=100, ticks_per_eval ge=100 le=3600, w_throughput/w_wait/w_queue ge=0.0, optional seed ge=0 le=2**32-1, @model_validator checking at least one weight > 0), CandidateMetrics (throughput: float, avg_wait: float, max_queue: float, fitness: float with HIGH-3 float types and coercion comments), OptimizationResult (best_signal_plan: SignalPlan, best_metrics: CandidateMetrics, elapsed_seconds: float, total_evaluations: int)",
+    "3. Create backend/src/optimizer/engine.py with parameter bounds as module constants (GREEN_MIN=10, GREEN_MAX=90, YELLOW_MIN=3, YELLOW_MAX=10, RED_MIN=10, RED_MAX=90). Implement genes_to_signal_plan(genes: np.ndarray) -> SignalPlan (converts 12-element array to 4 SignalTimers with clipping and rounding). Implement signal_plan_to_genes(signal_plan: SignalPlan) -> np.ndarray with MEDIUM-2 validation (check signal_ids == {'S1','S2','S3','S4'}, raise ValueError if not, sort by signal_id before extraction)",
+    "4. In backend/src/optimizer/engine.py, implement GA operators: tournament_select(population, fitness, rng) with size=3 without replacement, crossover(parent1, parent2, rng) with single-point crossover, mutate(genes, rng) with p_mutation=0.15 per gene, Gaussian noise sigma=10% of parameter range, clipped to bounds per gene using BOUNDS list",
+    "5. In backend/src/optimizer/engine.py, implement initialize_population(population_size, base_signal_plan, rng) that generates N-1 random candidates (uniform within bounds) plus one candidate from base_signal_plan (always include baseline for comparison)",
+    "6. Write unit tests in backend/tests/test_optimizer_engine.py covering: genes_to_signal_plan produces valid SignalPlan with 4 timers S1-S4, signal_plan_to_genes raises ValueError for wrong signal_ids, signal_plan_to_genes round-trip preserves values (genes -> plan -> genes), mutate stays within bounds after 100 iterations, crossover produces offspring different from parents, tournament_select picks from population indices"
+  ],
+  "acceptance_criteria": [
+    "backend/src/optimizer/ directory exists with __init__.py, schemas.py, engine.py",
+    "OptimizationRequest validates: population_size in [4,100], generations in [1,100], ticks_per_eval in [100,3600], at least one weight positive",
+    "genes_to_signal_plan converts 12 floats to SignalPlan with 4 timers (S1-S4), each with green/yellow/red rounded and clipped to bounds",
+    "signal_plan_to_genes validates signal_ids and sorts timers, raises ValueError for invalid plans",
+    "GA operators (tournament_select, crossover, mutate) execute without errors and produce valid gene arrays",
+    "Running 'python -m unittest tests.test_optimizer_engine' passes all tests"
+  ],
+  "verification": [
+    "cd /home/anton/Projects/traffic-flow-simulator/backend && python -m unittest tests.test_optimizer_engine"
+  ],
+  "blocked_reason": null,
+  "findings": "All acceptance criteria met. Unit tests verify: (1) genes_to_signal_plan produces valid 4-timer SignalPlan, (2) signal_plan_to_genes validates and sorts signal_ids per MEDIUM-2, (3) round-trip conversion preserves values, (4) GA operators (tournament_select, crossover, mutate) execute correctly with bounds enforcement, (5) population initialization includes base plan plus random candidates. HIGH-3 compliance: CandidateMetrics uses float types with coercion comments. All 10 tests pass."
+}

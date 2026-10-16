@@ -1,0 +1,7 @@
+{
+  "task_id": "task-traffic-light-optimizer",
+  "task_description": "Implement genetic algorithm-based traffic light signal timing optimizer with multi-objective fitness (throughput, avg wait, max queue) and REST API endpoint",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

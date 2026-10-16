@@ -1,0 +1,102 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "severity": "HIGH",
+      "id": "HIGH-1",
+      "title": "Worker Pool Reuse Pattern is Inefficient",
+      "location": "Parallel Execution Strategy section, pool creation pseudocode",
+      "problem": "ProcessPoolExecutor is created inside the generation loop, causing pool creation/destruction overhead for each generation. Worker processes must be spawned and network data re-loaded for every generation instead of once at start.",
+      "fix": "Move ProcessPoolExecutor creation outside the generation loop: `with ProcessPoolExecutor(...) as pool:` then `for generation_idx in range(generations):` inside the context. This reduces overhead from ~1-2s per generation to one-time ~1-2s startup."
+    },
+    {
+      "severity": "HIGH",
+      "id": "HIGH-2",
+      "title": "Missing Loop Structure for Future Collection",
+      "location": "Parallel Execution Strategy section, future collection pseudocode",
+      "problem": "Code shows `for future in futures:` where `futures` is a dict, then uses `idx = futures[future]` - incorrect Python syntax. Cannot iterate over dict and use as dict simultaneously without .items().",
+      "fix": "Use `for future, idx in futures.items():` or `from concurrent.futures import as_completed` with proper iteration pattern."
+    },
+    {
+      "severity": "HIGH",
+      "id": "HIGH-3",
+      "title": "CandidateMetrics Type Mismatch with Engine Metrics",
+      "location": "Schemas section, CandidateMetrics definition",
+      "problem": "Design claims throughput and max_queue are returned as float by TrafficEngine.metrics(), but verification shows they are int (done=sum of ints, max_queue is int). Comments are misleading about matching engine return types.",
+      "fix": "Update schema comments to clarify: `throughput: float  # Coerced from int (engine returns sum)` and `max_queue: float  # Coerced from int (engine returns max stopped)`. Pydantic will auto-coerce, but comments should be accurate."
+    },
+    {
+      "severity": "HIGH",
+      "id": "HIGH-4",
+      "title": "Normalization Division by Zero Edge Case Not Handled",
+      "location": "Objective Function section, normalized fitness formula",
+      "problem": "Two inconsistent approaches shown: adding eps to denominator `/ (range + eps)` which produces large values when range≈0 (wrong), vs checking range first and setting to 0.0 (correct). First approach appears in main formula, second appears later.",
+      "fix": "Remove `+ eps` from division denominators. Always check range first: `if max - min < eps: return 0.0 else: return (value - min) / (max - min)`. Apply consistently for all three metrics."
+    },
+    {
+      "severity": "HIGH",
+      "id": "HIGH-5",
+      "title": "Incomplete Specification of Seed Handling for Config",
+      "location": "Performance section, prepare_config_for_candidate function",
+      "problem": "Seed derivation uses only candidate_index: `(seed + candidate_index) % 2**32`. Since candidate_index is 0 to population_size-1 and reused each generation, Gen0 Candidate5 and Gen1 Candidate5 get identical seeds, breaking reproducibility across generations.",
+      "fix": "Include generation_idx in seed derivation: `config.seed = (request_seed + generation_idx * 1000 + candidate_index) % (2**32)`. Update prepare_config_for_candidate signature to accept generation_idx parameter."
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "MEDIUM-1",
+      "title": "Runtime Estimation Formula is Unrealistic",
+      "location": "Schemas section, OptimizationRequest @model_validator",
+      "problem": "Estimates `evals * ticks * 0.0001` implying 10,000 ticks/second, but design states 600 ticks take 0.05-0.2s (3000-12000 ticks/s). Formula doesn't account for parallelism. Will incorrectly reject valid requests or allow too-long requests.",
+      "fix": "Either remove runtime estimation validator entirely (recommended - rely on per-eval timeout) OR fix formula: `sequential_seconds = evals * ticks * 0.0003; estimated = sequential_seconds / min(cpu_count, population_size)`."
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "MEDIUM-2",
+      "title": "Signal Timer Sorting Assumption Not Validated",
+      "location": "Helper Functions section, signal_plan_to_genes function",
+      "problem": "Function sorts by signal_id assuming S1-S4, but doesn't validate that these are the actual IDs. If base_config contains different IDs (e.g., 'signal_1'), function would silently produce wrong gene ordering.",
+      "fix": "Add validation: `expected = {'S1','S2','S3','S4'}; actual = {t.signal_id for t in signal_plan.signal_timers}; if actual != expected: raise ValueError(f'signal_plan must contain S1-S4, got {actual}')`."
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "MEDIUM-3",
+      "title": "Missing Import in evaluate_candidate Worker Function",
+      "location": "Parallel Execution Strategy section, evaluate_candidate function",
+      "problem": "_WORKER_NETWORK is used but Network import is missing from function. While object is instantiated in worker_init, type checkers (mypy) will flag undefined name.",
+      "fix": "Add module-level declaration: `from src.network.schemas import Network` and `_WORKER_NETWORK: Network | None = None` OR add type comment: `network = _WORKER_NETWORK  # type: ignore[name-defined]`."
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "MEDIUM-4",
+      "title": "Fitness Comparison for Elite Selection Assumes Higher is Better",
+      "location": "Algorithm Choice section, elite extraction pseudocode",
+      "problem": "Fitness can be negative when penalty terms exceed throughput term. While implementation is correct (argsort + take last values), design doesn't explicitly state that negative values are handled correctly.",
+      "fix": "Add note to Objective Function section: 'Fitness may be negative when penalties exceed throughput. GA correctly maximizes fitness regardless of sign - higher is always better (e.g., -10 beats -20).'"
+    },
+    {
+      "severity": "NIT",
+      "id": "NIT-1",
+      "title": "Inconsistent Variable Naming for RNG",
+      "location": "Multiple sections",
+      "problem": "Design uses `rng` throughout algorithm pseudocode but doesn't specify creation in service.py context.",
+      "fix": "Add to service.py pseudocode: `rng = np.random.default_rng(req.seed)` at start of run_optimization()."
+    },
+    {
+      "severity": "NIT",
+      "id": "NIT-2",
+      "title": "Typo in Error Message",
+      "location": "Parallel Execution Strategy section, error handling",
+      "problem": "Error message uses `len(results)` which is verbose when `population_size` is available.",
+      "fix": "Change to: `f'Optimization failed in generation {generation_idx}: {failed_count}/{population_size} evaluations crashed'`."
+    },
+    {
+      "severity": "NIT",
+      "id": "NIT-3",
+      "title": "Missing __all__ Export in __init__.py",
+      "location": "Implementation Checklist section",
+      "problem": "Design specifies empty __init__.py but best practice is explicit exports.",
+      "fix": "Specify contents: `__all__ = ['router', 'service', 'schemas', 'engine']` with module docstring."
+    }
+  ],
+  "reviewDoc": "/home/anton/Projects/traffic-flow-simulator/.agents/tasks/design-review.md"
+}
