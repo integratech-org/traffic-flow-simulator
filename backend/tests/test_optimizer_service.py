@@ -6,6 +6,7 @@ Run with: python -m unittest tests.test_optimizer_service
 import unittest
 
 import numpy as np
+
 from src.network.service import load_network_data
 from src.optimizer.schemas import OptimizationRequest
 from src.optimizer.service import (

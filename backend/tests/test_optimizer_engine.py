@@ -6,6 +6,7 @@ Run with: python -m unittest tests.test_optimizer_engine
 import unittest
 
 import numpy as np
+
 from src.optimizer.engine import (
     BOUNDS,
     GREEN_MAX,
