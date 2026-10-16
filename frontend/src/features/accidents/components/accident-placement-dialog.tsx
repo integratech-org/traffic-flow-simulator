@@ -44,8 +44,60 @@ interface TempAccident {
 // Lane colors matching main map
 const LANE_COLOR = { inbound: "#3388ff", outbound: "#888" } as const
 
+// TASK7: Match visual lane widening from simulation-layers
+const LANE_OFFSET_METERS = 3.5
+const METERS_PER_DEGREE_LAT = 111320
+const LANE_WIDTH_BASE = 2.5
+const LANE_WIDTH_PER_LANE = 1
+
 // network.json is [lng, lat]; Leaflet wants [lat, lng]
 const toLatLng = ([lng, lat]: [number, number]): [number, number] => [lat, lng]
+
+/**
+ * TASK7: Calculate perpendicular offset (same as simulation-layers)
+ */
+function calculatePerpendicularOffset(
+  coord: [number, number],
+  nextCoord: [number, number] | undefined,
+  laneIndex: number,
+  offsetMeters: number
+): [number, number] {
+  if (laneIndex === 0 || !nextCoord) {
+    return coord
+  }
+  const [lng1, lat1] = coord
+  const [lng2, lat2] = nextCoord
+  const dLng = lng2 - lng1
+  const dLat = lat2 - lat1
+  const bearing = Math.atan2(dLng, dLat)
+  const perpBearing = bearing + Math.PI / 2
+  const offset = (laneIndex * offsetMeters) / METERS_PER_DEGREE_LAT
+  const latOffset = offset * Math.cos(perpBearing)
+  const lngOffset =
+    offset * Math.sin(perpBearing) * Math.cos((lat1 * Math.PI) / 180)
+  return [lng1 + lngOffset, lat1 + latOffset]
+}
+
+/**
+ * TASK7: Generate offset coordinates (same as simulation-layers)
+ */
+function generateOffsetCoordinates(
+  coords: [number, number][],
+  laneIndex: number
+): [number, number][] {
+  if (laneIndex === 0) {
+    return coords
+  }
+  return coords.map((coord, i) => {
+    const nextCoord = coords[i + 1]
+    return calculatePerpendicularOffset(
+      coord,
+      nextCoord,
+      laneIndex,
+      LANE_OFFSET_METERS
+    )
+  })
+}
 
 // Mindanao Avenue intersection coordinates - tighter bounds
 const INTERSECTION_CENTER: [number, number] = [14.721306, 121.052105]
@@ -324,21 +376,49 @@ export function AccidentPlacementDialog({
                 />
                 <MapClickHandler onMapClick={handleMapClick} />
 
-                {/* Lane overlays - same colors as main map */}
+                {/* TASK7: Lane overlays with visual widening - matches simulation-layers */}
                 {laneById &&
-                  Object.entries(laneById).map(([laneId, lane]) => (
-                    <Polyline
-                      key={laneId}
-                      positions={lane.cellCoords.map(toLatLng)}
-                      pathOptions={{
-                        color:
-                          LANE_COLOR[
-                            lane.direction as "inbound" | "outbound"
-                          ] ?? "#888",
-                        weight: 4,
-                      }}
-                    />
-                  ))}
+                  (() => {
+                    // Calculate lane count per leg+direction for width
+                    const laneCountByLegDir = new Map<string, number>()
+                    Object.values(laneById).forEach((lane) => {
+                      const key = `${lane.legId}_${lane.direction}`
+                      laneCountByLegDir.set(
+                        key,
+                        Math.max(
+                          laneCountByLegDir.get(key) || 0,
+                          lane.laneIndex + 1
+                        )
+                      )
+                    })
+
+                    return Object.entries(laneById).map(([laneId, lane]) => {
+                      const offsetCoords = generateOffsetCoordinates(
+                        lane.cellCoords,
+                        lane.laneIndex
+                      )
+                      const laneCount =
+                        laneCountByLegDir.get(
+                          `${lane.legId}_${lane.direction}`
+                        ) || 1
+                      const weight =
+                        LANE_WIDTH_BASE + LANE_WIDTH_PER_LANE * laneCount
+
+                      return (
+                        <Polyline
+                          key={laneId}
+                          positions={offsetCoords.map(toLatLng)}
+                          pathOptions={{
+                            color:
+                              LANE_COLOR[
+                                lane.direction as "inbound" | "outbound"
+                              ] ?? "#888",
+                            weight,
+                          }}
+                        />
+                      )
+                    })
+                  })()}
 
                 {/* Temporary accident markers */}
                 {tempAccidents.map((acc, idx) => (
