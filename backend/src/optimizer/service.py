@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 _WORKER_NETWORK: Network | None = None
 
 
-def worker_init(network_dict: dict) -> None:
+def worker_init(network_dict: dict[str, object]) -> None:
     """Initialize worker process with network data (called once per worker).
 
     Args:
@@ -43,7 +43,9 @@ def worker_init(network_dict: dict) -> None:
     _WORKER_NETWORK = Network.model_validate(network_dict)
 
 
-def evaluate_candidate_raw(config_dict: dict, ticks: int) -> dict[str, float]:
+def evaluate_candidate_raw(
+    config_dict: dict[str, object], ticks: int
+) -> dict[str, float]:
     """Evaluate a candidate and return raw metrics (no normalization).
 
     Args:
@@ -74,7 +76,7 @@ def evaluate_candidate_raw(config_dict: dict, ticks: int) -> dict[str, float]:
 
 
 def evaluate_candidate(
-    config_dict: dict,
+    config_dict: dict[str, object],
     ticks: int,
     w_throughput: float,
     w_wait: float,
@@ -130,11 +132,11 @@ def evaluate_candidate(
 
 def prepare_config_for_candidate(
     base_config: CreateRunRequest,
-    signal_plan,
+    signal_plan: object,
     generation_idx: int,
     candidate_index: int,
     request_seed: int | None,
-) -> dict:
+) -> dict[str, object]:
     """Prepare a config dict for a candidate evaluation.
 
     Args:
@@ -205,7 +207,7 @@ def run_optimization(
             futures[future] = idx
 
         # Collect results (no normalization yet, just raw metrics)
-        initial_results = [None] * req.population_size
+        initial_results: list[dict[str, float] | None] = [None] * req.population_size
         failed_count = 0
         # HIGH-2: Use 'for future, idx in futures.items():' to access both future and index
         for future, idx in futures.items():
@@ -242,9 +244,9 @@ def run_optimization(
             )
 
         # Compute normalization parameters from generation 0
-        throughput_values = [r["throughput"] for r in initial_results]
-        wait_values = [r["avg_wait"] for r in initial_results]
-        queue_values = [r["max_queue"] for r in initial_results]
+        throughput_values = [r["throughput"] for r in initial_results if r is not None]
+        wait_values = [r["avg_wait"] for r in initial_results if r is not None]
+        queue_values = [r["max_queue"] for r in initial_results if r is not None]
 
         normalization_params = {
             "throughput": (min(throughput_values), max(throughput_values)),
@@ -295,7 +297,7 @@ def run_optimization(
             futures[future] = idx
 
         # Collect normalized results for generation 0
-        gen0_results = [None] * req.population_size
+        gen0_results: list[CandidateMetrics | None] = [None] * req.population_size
         failed_count = 0
         for future, idx in futures.items():
             try:
@@ -328,10 +330,11 @@ def run_optimization(
             )
 
         # Track global best
-        fitness_array = np.array([r.fitness for r in gen0_results])
+        fitness_array = np.array([r.fitness for r in gen0_results if r is not None])
         best_idx = int(np.argmax(fitness_array))
         global_best_genes = population[best_idx].copy()
         global_best_metrics = gen0_results[best_idx]
+        assert global_best_metrics is not None  # Type narrowing for mypy
 
         logger.info(
             f"Generation 0: best fitness={global_best_metrics.fitness:.4f}, "
@@ -352,7 +355,7 @@ def run_optimization(
             elites = [population[i].copy() for i in elite_indices]
 
             # Generate offspring
-            offspring = []
+            offspring: list[np.ndarray] = []
             offspring_count = req.population_size - elite_count
             while len(offspring) < offspring_count:
                 parent1 = tournament_select(population, fitness_array, rng)
@@ -392,7 +395,7 @@ def run_optimization(
                 futures[future] = idx
 
             # Collect results
-            results = [None] * req.population_size
+            results: list[CandidateMetrics | None] = [None] * req.population_size
             failed_count = 0
             for future, idx in futures.items():
                 try:
@@ -426,11 +429,13 @@ def run_optimization(
                 )
 
             # Update fitness array and track global best
-            fitness_array = np.array([r.fitness for r in results])
+            fitness_array = np.array([r.fitness for r in results if r is not None])
             best_idx = int(np.argmax(fitness_array))
-            if fitness_array[best_idx] > global_best_metrics.fitness:
+            best_result = results[best_idx]
+            assert best_result is not None  # Type narrowing for mypy
+            if best_result.fitness > global_best_metrics.fitness:
                 global_best_genes = population[best_idx].copy()
-                global_best_metrics = results[best_idx]
+                global_best_metrics = best_result
 
             logger.info(
                 f"Generation {gen}: best fitness={fitness_array[best_idx]:.4f}, "

@@ -24,6 +24,7 @@ class WorkerInitTests(unittest.TestCase):
     def test_worker_init_loads_network(self) -> None:
         """worker_init should parse network_dict and store in global _WORKER_NETWORK."""
         network = load_network_data()
+        assert network is not None  # Type narrowing for mypy
         network_dict = network.model_dump()
 
         # Initialize worker
@@ -33,6 +34,7 @@ class WorkerInitTests(unittest.TestCase):
         from src.optimizer.service import _WORKER_NETWORK
 
         self.assertIsNotNone(_WORKER_NETWORK)
+        assert _WORKER_NETWORK is not None  # Type narrowing for mypy
         self.assertEqual(_WORKER_NETWORK.junction, network.junction)
         self.assertEqual(len(_WORKER_NETWORK.lanes), len(network.lanes))
 
