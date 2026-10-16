@@ -1,0 +1,24 @@
+{
+  "project_type": "FastAPI backend with Nagel-Schreckenberg traffic simulation engine, using uv for Python dependency management",
+  "language": "Python 3.12+",
+  "build_system": "uv - no explicit build step required for pure Python",
+  "test_framework": "unittest (Python standard library). Tests in backend/tests/ run via 'python -m unittest tests.test_<name>'",
+  "build_command": "N/A - no compilation step",
+  "test_command": "python -m unittest discover -s tests -p 'test_*.py'",
+  "verification_instructions": "Run unit tests for modified modules using 'python -m unittest tests.test_<module>'. For integration tests, start the backend with 'uv run fastapi dev src/main.py' and send HTTP requests to verify endpoints.",
+  "snapshot_or_generated_files": "None - no code generation or snapshot updates required",
+  "environment_constraints": "Backend runs on port 8000 by default via uvicorn (FastAPI). Network data is loaded once at app startup via lifespan context. ProcessPoolExecutor workers must serialize network data once per worker (not per evaluation) to minimize overhead.",
+  "contribution_requirements": "The approved design document at .agents/tasks/optimization-design.md contains 5 HIGH severity fixes that MUST be implemented: HIGH-1 (ProcessPoolExecutor created once outside generation loop), HIGH-2 (Future collection uses 'for future, idx in futures.items()'), HIGH-3 (CandidateMetrics types as float with int coercion), HIGH-4 (Normalization checks 'if max_val - min_val < eps: return 0.0' with NO '+ eps' in divisor), HIGH-5 (Seed derivation includes generation_idx: '(request_seed + generation_idx * 1000 + candidate_index) % (2**32)')",
+  "key_patterns": "Pydantic models for all schemas with Field(...) validators. FastAPI routers in separate files with APIRouter(prefix=..., tags=[...]). Service layer functions accept network_data as parameter (not loaded at module level). Engine metrics() returns dict[str, float] with throughput, avg_wait, max_queue keys. Existing tests use unittest.TestCase with descriptive test method names.",
+  "relevant_files": [
+    "backend/src/main.py (router registration pattern)",
+    "backend/src/simulation/schemas.py (SignalPlan, SignalTimer, CreateRunRequest structures)",
+    "backend/src/engine/engine.py (TrafficEngine.step(), metrics() return format)",
+    "backend/src/network/schemas.py (Network model)",
+    "backend/src/network/service.py (load_network_data() function)",
+    "backend/pyproject.toml (dependencies: numpy already available)",
+    "backend/tests/test_demand.py (unittest pattern to follow)",
+    ".agents/tasks/optimization-design.md (complete algorithm specification)"
+  ],
+  "directory_structure": "backend/src/<module>/ for each functional area (network/, simulation/, engine/, optimizer/). Each module has schemas.py (Pydantic models), service.py (business logic), router.py (FastAPI endpoints). Tests in backend/tests/ as test_<module>.py files. __init__.py in each module exports __all__ = ['router', 'service', 'schemas', 'engine'] (if applicable)."
+}

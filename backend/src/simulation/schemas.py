@@ -83,9 +83,23 @@ class VehicleParams(BaseModel):
 
 
 def default_vehicle_params() -> dict[VehicleType, VehicleParams]:
+    """Default vehicle parameters with realistic urban traffic speeds.
+
+    Speed values are in meters/second (m/s):
+    - Car: 11 m/s ≈ 40 km/h (realistic urban average speed)
+    - Motorcycle: 14 m/s ≈ 50 km/h (motorcycles accelerate faster, weave through traffic)
+
+    With 7.5m cells, these convert to:
+    - Car: ~1.5 cells/tick (with rounding becomes 1-2 cells/tick)
+    - Motorcycle: ~1.9 cells/tick (with rounding becomes 2 cells/tick)
+
+    p_slow represents driver hesitation, reaction time, and cautious behavior:
+    - Cars: 0.3 (30% chance of slowing per tick)
+    - Motorcycles: 0.2 (20% chance - more aggressive driving)
+    """
     return {
-        VehicleType.CAR: VehicleParams(v_max=15, p_slow=0.2),
-        VehicleType.MOTORCYCLE: VehicleParams(v_max=20, p_slow=0.1),
+        VehicleType.CAR: VehicleParams(v_max=11, p_slow=0.3),
+        VehicleType.MOTORCYCLE: VehicleParams(v_max=14, p_slow=0.2),
     }
 
 

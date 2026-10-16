@@ -32,8 +32,10 @@ LEG_SIGNAL = {
 }
 
 RAIN_EXTRA_P_SLOW = 0.10
-ACCIDENT_P_SLOW = 0.80  # Fixed: very strong slowdown effect (80%)
-ACCIDENT_RADIUS_METERS = 8  # Fixed: small radius (8 meters)
+ACCIDENT_P_SLOW = 0.95  # Very high slowdown probability (95%)
+ACCIDENT_RADIUS_METERS = (
+    30  # Larger radius so vehicles detect and stop earlier (30 meters)
+)
 FREE = 10_000  # "nothing ahead"
 EXIT_GAP = 20  # cells a lead vehicle sees past the end of an exit lane
 LIGHT_MAX, MODERATE_MAX = 0.15, 0.35  # density thresholds for congestion level
@@ -82,11 +84,36 @@ class LaneState:
         vtype: Sequence[int] | IntArray,
         wait: Sequence[int] | IntArray,
     ) -> None:
-        self.pos = np.concatenate([self.pos, np.asarray(pos, I64)])
-        self.spd = np.concatenate([self.spd, np.asarray(spd, I64)])
-        self.vid = np.concatenate([self.vid, np.asarray(vid, I64)])
-        self.vtype = np.concatenate([self.vtype, np.asarray(vtype, I64)])
-        self.wait = np.concatenate([self.wait, np.asarray(wait, I64)])
+        new_pos = np.asarray(pos, I64)
+        new_spd = np.asarray(spd, I64)
+        new_vid = np.asarray(vid, I64)
+        new_vtype = np.asarray(vtype, I64)
+        new_wait = np.asarray(wait, I64)
+
+        # Safety check: prevent adding vehicles at positions that already have vehicles
+        if self.n > 0:
+            # Create a mask for positions that don't conflict with existing vehicles
+            safe_mask = np.ones(len(new_pos), dtype=bool)
+            for i, p in enumerate(new_pos):
+                # Check if any existing vehicle is at this exact position
+                if np.any(self.pos == p):
+                    safe_mask[i] = False
+
+            # Only add vehicles that don't cause overlap
+            if not safe_mask.any():
+                return  # All positions would cause overlap, don't add anything
+
+            new_pos = new_pos[safe_mask]
+            new_spd = new_spd[safe_mask]
+            new_vid = new_vid[safe_mask]
+            new_vtype = new_vtype[safe_mask]
+            new_wait = new_wait[safe_mask]
+
+        self.pos = np.concatenate([self.pos, new_pos])
+        self.spd = np.concatenate([self.spd, new_spd])
+        self.vid = np.concatenate([self.vid, new_vid])
+        self.vtype = np.concatenate([self.vtype, new_vtype])
+        self.wait = np.concatenate([self.wait, new_wait])
         order = np.argsort(self.pos, kind="stable")
         for name in _COLS:
             setattr(self, name, getattr(self, name)[order])
@@ -158,6 +185,28 @@ class TrafficEngine:
         self.accidents = active
         return active
 
+    def _get_accident_block_position(self, lane: LaneState) -> int | None:
+        """Get the cell position where accident blocks the lane, or None if no blocking accident."""
+        if not self.accidents:
+            return None
+
+        # Check each cell in the lane for active accidents
+        for cell_idx in range(lane.length):
+            if cell_idx >= len(self.network.lanes[lane.id].cellCoords):
+                continue
+
+            lon, lat = self.network.lanes[lane.id].cellCoords[cell_idx]
+
+            for accident in self.get_active_accidents():
+                lat_diff = abs(lat - accident.lat) * 111000
+                lon_diff = abs(lon - accident.lon) * 111000
+                dist = np.sqrt(lat_diff**2 + lon_diff**2)
+
+                if dist <= ACCIDENT_RADIUS_METERS:
+                    return cell_idx  # Found a blocking accident at this position
+
+        return None
+
     def _is_vehicle_in_accident_zone(self, lane: LaneState, vehicle_idx: int) -> bool:
         """Check if a vehicle is in any accident zone. Returns True if yes."""
         if not self.accidents:
@@ -197,6 +246,10 @@ class TrafficEngine:
             gap: IntArray = np.empty(lane.n, I64)
             gap[:-1] = lane.pos[1:] - lane.pos[:-1] - 1
             to_end = lane.length - 1 - lane.pos[-1]
+
+            # Check if there's an accident blocking this lane
+            accident_block_pos = self._get_accident_block_position(lane)
+
             if lane.signal_id and not self.signals.can_pass(lane.signal_id, self.tick):
                 gap[-1] = to_end  # stop line
             elif lane.next_id:
@@ -204,18 +257,38 @@ class TrafficEngine:
             else:
                 gap[-1] = to_end + EXIT_GAP
 
+            # Adjust gaps for vehicles approaching an accident
+            if accident_block_pos is not None:
+                for i in range(lane.n):
+                    vehicle_pos = int(lane.pos[i])
+                    if vehicle_pos < accident_block_pos:
+                        # Vehicle is before the accident - limit gap to accident position
+                        gap_to_accident = accident_block_pos - vehicle_pos - 1
+                        gap[i] = min(gap[i], gap_to_accident)
+
             v = np.minimum(lane.spd + 1, self.vmax[vt])  # 1. accelerate
             v = np.minimum(v, gap)  # 2. no collision
 
             # 3. random slowdown (base + accident-affected)
             pslow_effective = np.full(lane.n, self.pslow[vt[0]], dtype=float)
+            accident_affected = np.zeros(lane.n, dtype=bool)
             for i in range(lane.n):
                 in_accident_zone = self._is_vehicle_in_accident_zone(lane, i)
                 if in_accident_zone:
-                    pslow_effective[i] = min(pslow_effective[i] + ACCIDENT_P_SLOW, 1.0)
+                    accident_affected[i] = True
+                    pslow_effective[i] = (
+                        1.0  # 100% chance to slow down in accident zone
+                    )
 
             slow = (self.rng.random(lane.n) < pslow_effective) & (v > 0)
             v = v - slow
+
+            # Additional accident effect: vehicles in accident zone should come to a stop
+            # Reduce speed more aggressively for accident-affected vehicles
+            v = np.where(
+                accident_affected, np.maximum(v - 2, 0), v
+            )  # Lose 2 extra speed units
+
             v = np.maximum(v, np.minimum(self.vmin[vt], gap))  # optional min speed
             new_speed[lane.id] = v
 
@@ -236,8 +309,12 @@ class TrafficEngine:
             if not out.any():
                 continue
             if lane.next_id:
+                # Calculate new positions in next lane
+                new_positions = lane.pos[out] - lane.length
+
+                # Add vehicles to next lane - the add() method will sort by position
                 self.lanes[lane.next_id].add(
-                    lane.pos[out] - lane.length,
+                    new_positions,
                     lane.spd[out],
                     lane.vid[out],
                     lane.vtype[out],
@@ -254,7 +331,10 @@ class TrafficEngine:
 
     def _spawn(self) -> None:
         for lane in self.entry_lanes:
-            if self.rng.random() < self.spawn_rate and (lane.n == 0 or lane.pos[0] > 0):
+            # Only spawn if: random check passes AND (lane empty OR rear vehicle is far enough)
+            # Need at least 2 cells gap to spawn safely (1 cell for vehicle + 1 cell gap)
+            can_spawn = lane.n == 0 or lane.pos[0] >= 2
+            if self.rng.random() < self.spawn_rate and can_spawn:
                 vt = MOTO if self.rng.random() < self.moto_share else CAR
                 lane.add([0], [0], [self.next_vid], [vt], [0])
                 self.next_vid += 1
