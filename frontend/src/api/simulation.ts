@@ -13,7 +13,7 @@ export type AccidentSeverity = "light" | "moderate" | "severe"
 
 export interface VehicleParams {
   v_max: number // m/s, int 1..20
-  v_min: number // m/s, int, must be < v_max
+  // FIX_TASK1: Removed v_min - standard NaSch allows speed=0 naturally
   p_slow: number // 0..1
 }
 

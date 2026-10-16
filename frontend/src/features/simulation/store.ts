@@ -16,8 +16,8 @@ export const DEFAULT_CONFIG: CreateRunRequest = {
   density_scenario: "light",
   vehicle_mix: { two_wheeler_pct: 40, four_wheeler_pct: 60 },
   vehicle_params: {
-    car: { v_max: 15, v_min: 0, p_slow: 0.2 },
-    motorcycle: { v_max: 20, v_min: 0, p_slow: 0.1 },
+    car: { v_max: 15, p_slow: 0.2 },
+    motorcycle: { v_max: 20, p_slow: 0.1 },
   },
   signal_plan: {
     signal_timers: [1, 2, 3, 4].map((i) => ({

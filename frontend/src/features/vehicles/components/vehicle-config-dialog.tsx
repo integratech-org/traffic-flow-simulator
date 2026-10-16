@@ -17,7 +17,7 @@ import motorcycleIcon from "../assets/motorcycle.svg"
 
 interface VehicleParams {
   maxSpeed: string
-  minSpeed: string
+  // FIX_TASK1: Removed minSpeed - standard NaSch allows speed=0 naturally
   randomSlowdown: string
 }
 
@@ -62,7 +62,6 @@ export function VehicleConfigDialog({
     const carParams = simConfig.vehicle_params.car
     return {
       maxSpeed: String(carParams.v_max),
-      minSpeed: String(carParams.v_min),
       randomSlowdown: String(carParams.p_slow),
     }
   })
@@ -72,7 +71,6 @@ export function VehicleConfigDialog({
       const motoParams = simConfig.vehicle_params.motorcycle
       return {
         maxSpeed: String(motoParams.v_max),
-        minSpeed: String(motoParams.v_min),
         randomSlowdown: String(motoParams.p_slow),
       }
     }
@@ -97,15 +95,14 @@ export function VehicleConfigDialog({
       const carParams = simConfig.vehicle_params.car
       const motoParams = simConfig.vehicle_params.motorcycle
 
+      // oxlint-disable-next-line react/set-state-in-effect
       setCarConfig({
         maxSpeed: String(carParams.v_max),
-        minSpeed: String(carParams.v_min),
         randomSlowdown: String(carParams.p_slow),
       })
 
       setMotorcycleConfig({
         maxSpeed: String(motoParams.v_max),
-        minSpeed: String(motoParams.v_min),
         randomSlowdown: String(motoParams.p_slow),
       })
 
@@ -186,7 +183,6 @@ export function VehicleConfigDialog({
 
     configs.forEach(({ type, config, display }) => {
       const maxSpeed = Number(config.maxSpeed)
-      const minSpeed = Number(config.minSpeed)
       const randomSlowdown = Number(config.randomSlowdown)
       const size = Number(display.size)
 
@@ -199,12 +195,7 @@ export function VehicleConfigDialog({
         newErrors[`${type}.maxSpeed`] = "Cannot exceed 20 cells/s"
       }
 
-      // Validate min speed
-      if (isNaN(minSpeed) || minSpeed < 0) {
-        newErrors[`${type}.minSpeed`] = "Must be 0 or greater"
-      } else if (minSpeed > maxSpeed) {
-        newErrors[`${type}.minSpeed`] = "Cannot exceed maximum speed"
-      }
+      // FIX_TASK1: Removed minSpeed validation - standard NaSch allows speed=0
 
       // Validate random slowdown probability
       if (isNaN(randomSlowdown) || randomSlowdown < 0 || randomSlowdown > 1) {
@@ -371,33 +362,7 @@ export function VehicleConfigDialog({
               )}
             </div>
 
-            {/* Minimum Speed */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="minSpeed"
-                className={`text-sm font-normal ${errors[`${vehicleType}.minSpeed`] ? "text-red-500" : ""}`}
-              >
-                Minimum Speed
-              </Label>
-              <div className="relative">
-                <Input
-                  id="minSpeed"
-                  type="number"
-                  step="0.01"
-                  value={currentConfig.minSpeed}
-                  onChange={(e) => handleChange("minSpeed", e.target.value)}
-                  className={`pr-20 ${errors[`${vehicleType}.minSpeed`] ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                />
-                <span className="absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">
-                  cells/s
-                </span>
-              </div>
-              {errors[`${vehicleType}.minSpeed`] && (
-                <p className="text-sm text-red-500">
-                  {errors[`${vehicleType}.minSpeed`]}
-                </p>
-              )}
-            </div>
+            {/* FIX_TASK1: Removed Minimum Speed section - standard NaSch allows speed=0 naturally */}
 
             {/* Random Slowdown */}
             <div className="space-y-2">
@@ -443,12 +408,10 @@ export function VehicleConfigDialog({
                   vehicle_params: {
                     car: {
                       v_max: Number(carConfig.maxSpeed),
-                      v_min: Number(carConfig.minSpeed),
                       p_slow: Number(carConfig.randomSlowdown),
                     },
                     motorcycle: {
                       v_max: Number(motorcycleConfig.maxSpeed),
-                      v_min: Number(motorcycleConfig.minSpeed),
                       p_slow: Number(motorcycleConfig.randomSlowdown),
                     },
                   },

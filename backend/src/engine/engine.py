@@ -141,16 +141,12 @@ class TrafficEngine:
         vp = config.vehicle_params
         car, moto = vp[VehicleType.CAR], vp[VehicleType.MOTORCYCLE]
         cell = network.cellSizeMeters
+        # FIX_TASK1: Only track vmax - standard NaSch allows speed=0 naturally
         vmax = [
             max(1, to_cells_per_tick(car.v_max, cell)),
             max(1, to_cells_per_tick(moto.v_max, cell)),
         ]
-        vmin = [
-            min(to_cells_per_tick(car.v_min, cell), vmax[CAR]),
-            min(to_cells_per_tick(moto.v_min, cell), vmax[MOTO]),
-        ]
         self.vmax = np.array(vmax, I64)
-        self.vmin = np.array(vmin, I64)
         extra = (
             RAIN_EXTRA_P_SLOW
             if config.weather_condition == WeatherCondition.RAINY
@@ -235,6 +231,43 @@ class TrafficEngine:
 
         return False
 
+    def _adjust_speed_for_leader(
+        self, lane: LaneState, v: IntArray, gap: IntArray, accident_affected: np.ndarray
+    ) -> IntArray:
+        """FIX_TASK3: Adjust speed based on vehicle ahead's type and speed.
+
+        Vehicles now recognize the vehicle in front and adjust behavior:
+        - Match speed of slower vehicles ahead
+        - Be extra cautious when fast vehicle behind slow vehicle
+        - Prevent speed mismatch collisions
+
+        OPTION 3: Skip vehicle recognition if in accident zone to prevent chain reaction
+        """
+        if lane.n <= 1:
+            return v  # Lead vehicle or empty lane - no adjustment needed
+
+        for i in range(lane.n - 1):  # All vehicles except lead vehicle
+            # OPTION 3: Skip vehicle recognition for vehicles in accident zones
+            if accident_affected[i]:
+                continue  # Let accident slowdown handle speed independently
+
+            my_type = lane.vtype[i]
+            leader_type = lane.vtype[i + 1]
+            leader_speed = lane.spd[i + 1]
+            gap_to_leader = int(gap[i])
+
+            # Basic rule: Don't go much faster than vehicle ahead
+            # Allow some speed advantage based on available gap
+            safe_speed = leader_speed + min(gap_to_leader // 2, 2)
+            v[i] = min(v[i], safe_speed)
+
+            # Special case: Fast vehicle (motorcycle) behind slow vehicle (car)
+            if self.vmax[my_type] > self.vmax[leader_type] and gap_to_leader < 4:
+                # Extra caution when following slower vehicle type (close following distance)
+                v[i] = min(v[i], leader_speed)  # Match speed exactly
+
+        return v
+
     # ---- one NaSch tick ----
     def step(self) -> None:
         # Pass 1: new speeds for every lane, computed from the OLD state
@@ -247,8 +280,7 @@ class TrafficEngine:
             gap[:-1] = lane.pos[1:] - lane.pos[:-1] - 1
             to_end = lane.length - 1 - lane.pos[-1]
 
-            # Check if there's an accident blocking this lane
-            accident_block_pos = self._get_accident_block_position(lane)
+            # FIX_TASK4: Removed accident_block_pos (unused after removing wall blocking logic)
 
             if lane.signal_id and not self.signals.can_pass(lane.signal_id, self.tick):
                 gap[-1] = to_end  # stop line
@@ -258,38 +290,48 @@ class TrafficEngine:
                 gap[-1] = to_end + EXIT_GAP
 
             # Adjust gaps for vehicles approaching an accident
-            if accident_block_pos is not None:
-                for i in range(lane.n):
-                    vehicle_pos = int(lane.pos[i])
-                    if vehicle_pos < accident_block_pos:
-                        # Vehicle is before the accident - limit gap to accident position
-                        gap_to_accident = accident_block_pos - vehicle_pos - 1
-                        gap[i] = min(gap[i], gap_to_accident)
+            # FIX_TASK4: Removed solid wall block logic - accidents now cause slowdown, not complete blocking
+            # Vehicles can pass through accident zones (removed gap restriction)
 
-            v = np.minimum(lane.spd + 1, self.vmax[vt])  # 1. accelerate
-            v = np.minimum(v, gap)  # 2. no collision
-
-            # 3. random slowdown (base + accident-affected)
-            pslow_effective = np.full(lane.n, self.pslow[vt[0]], dtype=float)
+            # FIX_TASK4: First, identify vehicles in accident zones
+            # This is needed for both accident slowdown AND vehicle recognition logic
             accident_affected = np.zeros(lane.n, dtype=bool)
             for i in range(lane.n):
                 in_accident_zone = self._is_vehicle_in_accident_zone(lane, i)
                 if in_accident_zone:
                     accident_affected[i] = True
+
+            # FIX_TASK2: Standard NaSch - accelerate, then limit by gap
+            # Standard NaSch: accelerate, then limit by gap, then random slowdown
+            v = np.minimum(lane.spd + 1, self.vmax[vt])  # 1. accelerate
+            v = np.minimum(
+                v, gap
+            )  # 2. collision avoidance (speed limited by gap ahead)
+
+            # FIX_TASK3 + OPTION 3: Vehicle recognition (skips vehicles in accident zones)
+            # Vehicles recognize and respond to the vehicle ahead, except in accident zones
+            v = self._adjust_speed_for_leader(lane, v, gap, accident_affected)
+
+            # FIX_TASK4: Accident slowdown behavior (80% probability)
+            # 3. random slowdown (base + accident-affected)
+            pslow_effective = np.full(lane.n, self.pslow[vt[0]], dtype=float)
+            for i in range(lane.n):
+                if accident_affected[i]:
+                    # OPTION 1: 80% probability only, no speed penalty
+                    # This provides strong slowdown without chain reaction effect
                     pslow_effective[i] = (
-                        1.0  # 100% chance to slow down in accident zone
+                        0.80  # 80% chance to slow down in accident zone
                     )
 
             slow = (self.rng.random(lane.n) < pslow_effective) & (v > 0)
             v = v - slow
 
-            # Additional accident effect: vehicles in accident zone should come to a stop
-            # Reduce speed more aggressively for accident-affected vehicles
-            v = np.where(
-                accident_affected, np.maximum(v - 2, 0), v
-            )  # Lose 2 extra speed units
+            # OPTION 1: Removed speed penalty - probability-based slowdown is sufficient
+            # This prevents chain reaction where entire queue drops to near-zero speed
+            # (Removed: v = np.where(accident_affected, np.maximum(v - 1, 0), v))
 
-            v = np.maximum(v, np.minimum(self.vmin[vt], gap))  # optional min speed
+            # FIX_TASK1: Removed minimum speed enforcement (line was: v = np.maximum(v, np.minimum(self.vmin[vt], gap)))
+            # Standard NaSch allows vehicles to reach speed 0, especially at red lights
             new_speed[lane.id] = v
 
         # Pass 2: move (4.)
