@@ -141,3 +141,32 @@ export const deleteAccident = (runId: string, accidentId: string) =>
     `/simulation/runs/${runId}/accidents/${accidentId}`,
     send("DELETE")
   )
+
+// Optimization API
+export interface OptimizationRequest {
+  base_config: CreateRunRequest
+  population_size?: number
+  generations?: number
+  ticks_per_eval?: number
+  w_throughput?: number
+  w_wait?: number
+  w_queue?: number
+  seed?: number | null
+}
+
+export interface CandidateMetrics {
+  throughput: number
+  avg_wait: number
+  max_queue: number
+  fitness: number
+}
+
+export interface OptimizationResult {
+  best_signal_plan: SignalPlan
+  best_metrics: CandidateMetrics
+  elapsed_seconds: number
+  total_evaluations: number
+}
+
+export const optimizeSignalPlan = (req: OptimizationRequest) =>
+  fetchJson<OptimizationResult>("/optimization/optimize", send("POST", req))
