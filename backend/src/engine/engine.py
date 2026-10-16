@@ -39,6 +39,18 @@ ACCIDENT_RADIUS_METERS = (
 FREE = 10_000  # "nothing ahead"
 EXIT_GAP = 20  # cells a lead vehicle sees past the end of an exit lane
 LIGHT_MAX, MODERATE_MAX = 0.15, 0.35  # density thresholds for congestion level
+METERS_PER_DEGREE_LAT = (
+    111320  # approximate meters per degree latitude (for distance calculation)
+)
+
+# TASK8: Lane-changing parameters (MOBIL model)
+P_CHANGE_CAR = 0.12  # Probability of attempting lane change per tick for cars (12%)
+P_CHANGE_MOTO = 0.20  # Motorcycles more aggressive (20%)
+MIN_GAP_AHEAD = 3  # Minimum safe gap ahead in target lane (3 cells)
+MIN_GAP_BEHIND = 2  # Minimum safe gap behind in target lane (2 cells)
+ADVANTAGE_THRESHOLD = 1  # Minimum speed advantage to justify change (1 cell/tick)
+POLITENESS_CAR = 0.3  # Cars more polite (care about others)
+POLITENESS_MOTO = 0.1  # Motorcycles less polite (more aggressive)
 
 I64 = np.int64
 IntArray = NDArray[np.int64]
@@ -57,10 +69,17 @@ class LaneState:
         self.length = data.numCells
         self.leg_id = data.legId
         self.direction = data.direction
+        self.lane_index = data.laneIndex  # TASK8: Store lane index
+        self.cellCoords = (
+            data.cellCoords
+        )  # TASK10: Store coordinates for accident detection
         self.signal_id = (
             LEG_SIGNAL.get(self.leg_id) if self.direction == "inbound" else None
         )
         self.next_id = data.connectsTo
+        # TASK8: Lane adjacency for lane-changing
+        self.left_neighbor: str | None = None
+        self.right_neighbor: str | None = None
         # vehicles kept sorted ascending by position (last = lead vehicle)
         self.pos: IntArray = np.empty(0, I64)
         self.spd: IntArray = np.empty(0, I64)
@@ -130,6 +149,9 @@ class TrafficEngine:
         self.entry_lanes = [
             lane for lane in self.lanes.values() if lane.id not in targets
         ]
+
+        # TASK8: Build lane adjacency graph for lane-changing
+        self._build_lane_adjacency()
 
         self.signals = SignalController(config.signal_plan)
         self.rng = np.random.default_rng(config.seed)
@@ -268,8 +290,165 @@ class TrafficEngine:
 
         return v
 
+    def _build_lane_adjacency(self) -> None:
+        """TASK8: Build lane adjacency graph for lane-changing."""
+        for lane in self.lanes.values():
+            # Left neighbor (laneIndex + 1)
+            left_id = f"{lane.leg_id}_{lane.direction}_lane{lane.lane_index + 1}"
+            if left_id in self.lanes:
+                lane.left_neighbor = left_id
+            # Right neighbor (laneIndex - 1)
+            if lane.lane_index > 0:
+                right_id = f"{lane.leg_id}_{lane.direction}_lane{lane.lane_index - 1}"
+                if right_id in self.lanes:
+                    lane.right_neighbor = right_id
+
+    def _can_change_lane_safe(
+        self, from_lane: LaneState, vehicle_index: int, to_lane_id: str
+    ) -> bool:
+        """TASK8: Safety check for lane change."""
+        to_lane = self.lanes.get(to_lane_id)
+        if not to_lane:
+            return False
+        vehicle_pos = int(from_lane.pos[vehicle_index])
+        # Don't change near intersection
+        if vehicle_pos > from_lane.length * 0.9:
+            return False
+        ahead_gap, behind_gap = FREE, FREE
+        for i in range(to_lane.n):
+            target_pos = int(to_lane.pos[i])
+            if target_pos > vehicle_pos:
+                ahead_gap = min(ahead_gap, target_pos - vehicle_pos - 1)
+            elif target_pos < vehicle_pos:
+                behind_gap = min(behind_gap, vehicle_pos - target_pos - 1)
+            else:
+                return False  # Overlap
+        return ahead_gap >= MIN_GAP_AHEAD and behind_gap >= MIN_GAP_BEHIND
+
+    def _calculate_lane_change_incentive(
+        self, from_lane: LaneState, vehicle_index: int, to_lane_id: str
+    ) -> float:
+        """TASK8: MOBIL incentive calculation."""
+        to_lane = self.lanes.get(to_lane_id)
+        if not to_lane:
+            return -999.0
+        vehicle_type = from_lane.vtype[vehicle_index]
+        vehicle_pos = int(from_lane.pos[vehicle_index])
+        # Current gap
+        if vehicle_index >= from_lane.n - 1:
+            current_gap = from_lane.length - 1 - vehicle_pos
+        else:
+            current_gap = int(from_lane.pos[vehicle_index + 1] - vehicle_pos - 1)
+        current_max_speed = min(self.vmax[vehicle_type], current_gap)
+        # New gap
+        new_gap = FREE
+        for i in range(to_lane.n):
+            if to_lane.pos[i] > vehicle_pos:
+                new_gap = int(to_lane.pos[i] - vehicle_pos - 1)
+                break
+        new_max_speed = min(self.vmax[vehicle_type], new_gap)
+        advantage_self = new_max_speed - current_max_speed
+        # Simplified MOBIL - just speed advantage (politeness term omitted for simplicity)
+        return advantage_self
+
+    def _execute_lane_change(
+        self, from_lane: LaneState, vehicle_index: int, to_lane_id: str
+    ) -> None:
+        """TASK8: Transfer vehicle between lanes."""
+        to_lane = self.lanes.get(to_lane_id)
+        if not to_lane:
+            return
+        pos = from_lane.pos[vehicle_index : vehicle_index + 1]
+        spd = from_lane.spd[vehicle_index : vehicle_index + 1]
+        vid = from_lane.vid[vehicle_index : vehicle_index + 1]
+        vtype = from_lane.vtype[vehicle_index : vehicle_index + 1]
+        wait = from_lane.wait[vehicle_index : vehicle_index + 1]
+        keep_mask = np.ones(from_lane.n, dtype=bool)
+        keep_mask[vehicle_index] = False
+        from_lane.keep(keep_mask)
+        to_lane.add(pos, spd, vid, vtype, wait)
+
+    def _process_lane_changes(self) -> None:
+        """TASK8 + TASK10: Process lane changes for all vehicles, with accident avoidance."""
+        from collections import defaultdict
+
+        lane_changes: list[tuple[str, int, str]] = []
+        for lane in self.lanes.values():
+            if lane.n == 0:
+                continue
+            for i in range(lane.n):
+                vehicle_type = lane.vtype[i]
+                vehicle_pos = int(lane.pos[i])
+
+                # TASK10: Check if approaching accident (look ahead 50 cells)
+                is_approaching_accident = False
+                if self.accidents:
+                    for check_pos in range(
+                        vehicle_pos, min(vehicle_pos + 50, lane.length)
+                    ):
+                        if check_pos < len(lane.cellCoords):
+                            cell_lon, cell_lat = lane.cellCoords[check_pos]
+                            for accident in self.get_active_accidents():
+                                d_lat = (
+                                    accident.lat - cell_lat
+                                ) * METERS_PER_DEGREE_LAT
+                                d_lon = (
+                                    (accident.lon - cell_lon)
+                                    * METERS_PER_DEGREE_LAT
+                                    * np.cos(np.radians(cell_lat))
+                                )
+                                distance = np.sqrt(d_lat**2 + d_lon**2)
+                                if distance <= ACCIDENT_RADIUS_METERS * 2:
+                                    is_approaching_accident = True
+                                    break
+                        if is_approaching_accident:
+                            break
+
+                # Higher probability if approaching accident
+                p_change = P_CHANGE_MOTO if vehicle_type == MOTO else P_CHANGE_CAR
+                if is_approaching_accident:
+                    p_change = min(p_change * 3, 0.8)  # 3x more likely
+
+                if self.rng.random() >= p_change:
+                    continue
+                # Try left first
+                if lane.left_neighbor and self._can_change_lane_safe(
+                    lane, i, lane.left_neighbor
+                ):
+                    incentive = self._calculate_lane_change_incentive(
+                        lane, i, lane.left_neighbor
+                    )
+                    # Lower threshold if avoiding accident
+                    threshold = -1 if is_approaching_accident else ADVANTAGE_THRESHOLD
+                    if incentive > threshold:
+                        lane_changes.append((lane.id, i, lane.left_neighbor))
+                        continue
+                # Try right
+                if lane.right_neighbor and self._can_change_lane_safe(
+                    lane, i, lane.right_neighbor
+                ):
+                    incentive = self._calculate_lane_change_incentive(
+                        lane, i, lane.right_neighbor
+                    )
+                    threshold = -1 if is_approaching_accident else ADVANTAGE_THRESHOLD
+                    if incentive > threshold:
+                        lane_changes.append((lane.id, i, lane.right_neighbor))
+        # Execute changes
+        changes_by_lane = defaultdict(list)
+        for from_id, idx, to_id in lane_changes:
+            changes_by_lane[from_id].append((idx, to_id))
+        for from_id, changes in changes_by_lane.items():
+            changes.sort(key=lambda x: x[0], reverse=True)
+            from_lane = self.lanes[from_id]
+            for idx, to_id in changes:
+                if idx < from_lane.n:
+                    self._execute_lane_change(from_lane, idx, to_id)
+
     # ---- one NaSch tick ----
     def step(self) -> None:
+        # TASK8: Pass 0 - Lane-changing (before speed calculation)
+        self._process_lane_changes()
+
         # Pass 1: new speeds for every lane, computed from the OLD state
         new_speed: dict[str, IntArray] = {}
         for lane in self.lanes.values():
