@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { X } from "lucide-react"
+import { X, Sparkles } from "lucide-react"
 import { useSimStore } from "@/features/simulation/store"
+import { OptimizationDialog } from "./optimization-dialog"
 
 interface TrafficLightTiming {
   green: string
@@ -38,6 +39,9 @@ export function TrafficLightDialog({
 
   // Validation errors state
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Optimization dialog state
+  const [isOptimizationOpen, setIsOptimizationOpen] = useState(false)
 
   // Initialize from store config
   const [config, setConfig] = useState<TrafficLightConfig>(() => {
@@ -353,6 +357,16 @@ export function TrafficLightDialog({
               )}
             </div>
 
+            {/* Auto Optimize Button */}
+            <Button
+              onClick={() => setIsOptimizationOpen(true)}
+              variant="outline"
+              className="h-11 w-full border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950"
+            >
+              <Sparkles className="mr-2 size-4" />
+              Auto-Optimize All Signals
+            </Button>
+
             {/* Save Button */}
             <Button
               onClick={handleSave}
@@ -363,6 +377,41 @@ export function TrafficLightDialog({
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {/* Optimization Dialog */}
+      {isOptimizationOpen && (
+        <OptimizationDialog
+          open={isOptimizationOpen}
+          onOpenChange={setIsOptimizationOpen}
+          onOptimizationComplete={() => {
+            // Sync the local config with the updated store config
+            const signalTimers =
+              useSimStore.getState().config.signal_plan.signal_timers
+            setConfig({
+              north: {
+                green: String(signalTimers[0]?.green ?? 30),
+                yellow: String(signalTimers[0]?.yellow ?? 5),
+                red: String(signalTimers[0]?.red ?? 30),
+              },
+              south: {
+                green: String(signalTimers[1]?.green ?? 30),
+                yellow: String(signalTimers[1]?.yellow ?? 5),
+                red: String(signalTimers[1]?.red ?? 30),
+              },
+              east: {
+                green: String(signalTimers[2]?.green ?? 30),
+                yellow: String(signalTimers[2]?.yellow ?? 5),
+                red: String(signalTimers[2]?.red ?? 30),
+              },
+              west: {
+                green: String(signalTimers[3]?.green ?? 30),
+                yellow: String(signalTimers[3]?.yellow ?? 5),
+                red: String(signalTimers[3]?.red ?? 30),
+              },
+            })
+          }}
+        />
+      )}
     </Card>
   )
 }
