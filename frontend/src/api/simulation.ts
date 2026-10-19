@@ -69,10 +69,21 @@ export interface LaneCongestion {
   volume: number
 }
 
+export interface LaneSegment {
+  // TASK_SEGMENTED_CONGESTION: Individual segment of a lane with localized congestion
+  lane_id: string
+  start_cell: number
+  end_cell: number
+  level: CongestionLevel
+  density: number
+  vehicle_count: number
+}
+
 export interface SignalStatus {
   signal_id: string
   leg_id: string
   phase: Phase
+  seconds_remaining: number
 }
 
 export interface Metrics {
@@ -98,6 +109,7 @@ export interface TickMessage {
   tick: number
   vehicles: VehicleState[]
   congestion: LaneCongestion[]
+  segments: LaneSegment[] // TASK_SEGMENTED_CONGESTION: Segment-level congestion
   signals: SignalStatus[]
   metrics: Metrics | null
   accidents: Accident[]
@@ -125,6 +137,12 @@ export const updateSignalPlan = (id: string, plan: SignalPlan) =>
   fetchJson<RunStateResponse>(
     `/simulation/runs/${id}/signal-plan`,
     send("PUT", plan)
+  )
+
+export const optimizeRealtime = (id: string, request: OptimizationRequest) =>
+  fetchJson<OptimizationResult>(
+    `/optimization/optimize-realtime/${id}`,
+    send("POST", request)
   )
 
 export const addAccident = (runId: string, accident: Accident) =>
