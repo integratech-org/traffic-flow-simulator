@@ -24,71 +24,15 @@ const ARROW_SPACING = 15 // Show arrow every N cells
 const ARROW_SIZE = 8 // Size of arrow in pixels
 const ARROW_COLOR = "rgba(255, 255, 255, 0.6)" // Semi-transparent white
 
-// TASK7: Visual lane widening - offset distance per lane in meters
-const LANE_OFFSET_METERS = 3.5 // meters lateral offset per lane index
-const METERS_PER_DEGREE_LAT = 111320 // approximate meters per degree latitude
-const LANE_WIDTH_BASE = 2.5 // base polyline weight
-const LANE_WIDTH_PER_LANE = 1 // additional weight per lane
+// VISUAL_SIMPLIFICATION: Single-lane visualization (multi-lane logic still runs in backend)
+const LANE_WIDTH = 4 // Single consistent width for Google Maps-style roads
 
 // network.json is [lng, lat]; Leaflet wants [lat, lng]
 const toLatLng = ([lng, lat]: [number, number]): [number, number] => [lat, lng]
 
-/**
- * TASK7: Calculate perpendicular offset for a coordinate based on bearing
- * Offsets coordinates laterally to visually separate parallel lanes
- */
-function calculatePerpendicularOffset(
-  coord: [number, number],
-  nextCoord: [number, number] | undefined,
-  laneIndex: number,
-  offsetMeters: number
-): [number, number] {
-  if (laneIndex === 0 || !nextCoord) {
-    return coord // Lane 0 stays at center, or last point no offset
-  }
-
-  const [lng1, lat1] = coord
-  const [lng2, lat2] = nextCoord
-
-  // Calculate bearing (direction of travel)
-  const dLng = lng2 - lng1
-  const dLat = lat2 - lat1
-  const bearing = Math.atan2(dLng, dLat) // radians
-
-  // Perpendicular direction (90 degrees to the right)
-  const perpBearing = bearing + Math.PI / 2
-
-  // Calculate offset in degrees
-  // Offset to the right for higher lane indices
-  const offset = (laneIndex * offsetMeters) / METERS_PER_DEGREE_LAT
-  const latOffset = offset * Math.cos(perpBearing)
-  const lngOffset =
-    offset * Math.sin(perpBearing) * Math.cos((lat1 * Math.PI) / 180)
-
-  return [lng1 + lngOffset, lat1 + latOffset]
-}
-
-/**
- * TASK7: Generate offset coordinates for a lane based on its laneIndex
- */
-function generateOffsetCoordinates(
-  coords: [number, number][],
-  laneIndex: number
-): [number, number][] {
-  if (laneIndex === 0) {
-    return coords // Lane 0 (rightmost/center) stays at original position
-  }
-
-  return coords.map((coord, i) => {
-    const nextCoord = coords[i + 1]
-    return calculatePerpendicularOffset(
-      coord,
-      nextCoord,
-      laneIndex,
-      LANE_OFFSET_METERS
-    )
-  })
-}
+// VISUAL_SIMPLIFICATION: Removed lane offset functions
+// Multi-lane simulation still runs in backend, but visualization shows single lane per road
+// This simplifies the visual for demo while keeping full lane-changing logic active
 
 /**
  * TASK9: Calculate bearing (angle) between two coordinates for arrow rotation
@@ -181,61 +125,100 @@ export function SimulationLayers({
   const tick = useSimStore((s) => s.tick)
   const accidents = useSimStore((s) => s.accidents)
 
-  // TASK7: Calculate lane count per leg+direction for visual width
-  const laneCountByLegDir = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const lane of Object.values(laneById)) {
-      const key = `${lane.legId}_${lane.direction}`
-      counts.set(key, Math.max(counts.get(key) || 0, lane.laneIndex + 1))
+  // TASK_SEGMENTED_CONGESTION: Build segment map for rendering
+  const segmentsByLane = useMemo(() => {
+    const map = new Map<
+      string,
+      Array<{
+        lane_id: string
+        start_cell: number
+        end_cell: number
+        level: string
+        density: number
+        vehicle_count: number
+      }>
+    >()
+
+    if (!tick?.segments) return map
+
+    for (const segment of tick.segments) {
+      if (!map.has(segment.lane_id)) {
+        map.set(segment.lane_id, [])
+      }
+      map.get(segment.lane_id)!.push(segment)
     }
-    return counts
-  }, [laneById])
+    return map
+  }, [tick?.segments])
 
-  // TASK7: Generate offset lane lines with adjusted width
-  const laneLines = useMemo(
-    () =>
-      Object.entries(laneById).map(([id, lane]) => {
-        const offsetCoords = generateOffsetCoordinates(
-          lane.cellCoords,
-          lane.laneIndex
-        )
-        const laneCount =
-          laneCountByLegDir.get(`${lane.legId}_${lane.direction}`) || 1
-        const weight = LANE_WIDTH_BASE + LANE_WIDTH_PER_LANE * laneCount
+  // VISUAL_SIMPLIFICATION: Removed lane count calculation - all roads use single width
 
-        return {
-          id,
-          lane,
-          positions: offsetCoords.map(toLatLng),
-          weight,
+  // VISUAL_SIMPLIFICATION: Single-lane visualization with segmented congestion
+  // Only render lane 0 (center lane) for each leg+direction to show single road
+  // Multi-lane simulation continues in backend, but we merge visual representation
+  const laneSegments = useMemo(() => {
+    const allSegments: Array<{
+      id: string
+      positions: [number, number][]
+      color: string
+      weight: number
+    }> = []
+
+    // Group lanes by leg+direction to only render the center lane (laneIndex 0)
+    for (const [laneId, lane] of Object.entries(laneById)) {
+      if (lane.laneIndex !== 0) continue // Only render center lanes
+
+      const coords = lane.cellCoords // No offset - use original coordinates
+      const segments = segmentsByLane.get(laneId) || []
+
+      // If no segment data, render whole lane with idle color
+      if (segments.length === 0) {
+        allSegments.push({
+          id: `${laneId}_full`,
+          positions: coords.map(toLatLng),
+          color: IDLE_COLOR[lane.direction as "inbound" | "outbound"] ?? "#888",
+          weight: LANE_WIDTH,
+        })
+      } else {
+        // Render each segment with its own color
+        for (const segment of segments) {
+          const segmentCoords = coords.slice(
+            segment.start_cell,
+            segment.end_cell + 1 // Include next point for continuity
+          )
+
+          if (segmentCoords.length < 2) continue // Need at least 2 points for polyline
+
+          allSegments.push({
+            id: `${laneId}_${segment.start_cell}_${segment.end_cell}`,
+            positions: segmentCoords.map(toLatLng),
+            color: LEVEL_COLOR[segment.level as CongestionLevel],
+            weight: LANE_WIDTH,
+          })
         }
-      }),
-    [laneById, laneCountByLegDir]
-  )
+      }
+    }
 
-  // TASK9: Generate arrow markers for each lane
-  const laneArrows = useMemo(
-    () =>
-      Object.entries(laneById).flatMap(([id, lane]) => {
-        const offsetCoords = generateOffsetCoordinates(
-          lane.cellCoords,
-          lane.laneIndex
-        )
-        const arrows = generateArrowPositions(offsetCoords, ARROW_SPACING)
+    return allSegments
+  }, [laneById, segmentsByLane])
 
-        return arrows.map((arrow, idx) => ({
-          id: `${id}_arrow_${idx}`,
-          position: toLatLng(arrow.position),
-          rotation: arrow.rotation,
-        }))
-      }),
-    [laneById]
-  )
+  // TASK9: Generate arrow markers for center lanes only (single-lane visualization)
+  const laneArrows = useMemo(() => {
+    // Only show arrows on center lanes (laneIndex 0) for cleaner visualization
+    const centerLanes = Object.entries(laneById).filter(
+      ([, lane]) => lane.laneIndex === 0
+    )
 
-  const levelByLane = useMemo(
-    () => new Map(tick?.congestion.map((c) => [c.lane_id, c.level])),
-    [tick]
-  )
+    return centerLanes.flatMap(([id, lane]) => {
+      const coords = lane.cellCoords // No offset - use original coordinates
+      const arrows = generateArrowPositions(coords, ARROW_SPACING)
+
+      return arrows.map((arrow, idx) => ({
+        id: `${id}_arrow_${idx}`,
+        position: toLatLng(arrow.position),
+        rotation: arrow.rotation,
+      }))
+    })
+  }, [laneById])
 
   // a signal marker sits on the last cell (stop line) of its leg's inbound lane
   const stopLines = useMemo(() => {
@@ -250,22 +233,15 @@ export function SimulationLayers({
 
   return (
     <>
-      {laneLines.map(({ id, lane, positions, weight }) => {
-        const level = levelByLane.get(id)
-        return (
-          <LanePolyline
-            key={id}
-            positions={positions}
-            weight={weight}
-            color={
-              level
-                ? LEVEL_COLOR[level]
-                : (IDLE_COLOR[lane.direction as "inbound" | "outbound"] ??
-                  "#888")
-            }
-          />
-        )
-      })}
+      {/* TASK_SEGMENTED_CONGESTION: Render colored segments instead of full lanes */}
+      {laneSegments.map((segment) => (
+        <LanePolyline
+          key={segment.id}
+          positions={segment.positions}
+          weight={segment.weight}
+          color={segment.color}
+        />
+      ))}
 
       {/* TASK9: Directional arrows showing traffic flow */}
       {laneArrows.map((arrow) => (
@@ -293,37 +269,8 @@ export function SimulationLayers({
         ) : null
       })}
 
-      {tick?.vehicles.map((v) => {
-        const lane = laneById[v.lane_id]
-        if (!lane) return null
-
-        const coord = lane.cellCoords[v.cell]
-        if (!coord) return null
-
-        // TASK7: Apply same offset to vehicle position as lane rendering
-        const nextCoord = lane.cellCoords[v.cell + 1]
-        const offsetCoord = calculatePerpendicularOffset(
-          coord,
-          nextCoord,
-          lane.laneIndex,
-          LANE_OFFSET_METERS
-        )
-
-        const vehicleDisplay = useSimStore.getState().vehicleDisplay[v.type]
-
-        return (
-          <CircleMarker
-            key={v.id}
-            center={toLatLng(offsetCoord)}
-            radius={vehicleDisplay.size}
-            pathOptions={{
-              stroke: false,
-              fillColor: vehicleDisplay.color,
-              fillOpacity: 0.95,
-            }}
-          />
-        )
-      })}
+      {/* TASK_REMOVE_VEHICLES: Vehicle circles removed to declutter map - congestion colors now show traffic */}
+      {/* Vehicles are still simulated, just not rendered individually */}
 
       {/* Accident Markers and Zones */}
       {accidents.map((accident) => {
