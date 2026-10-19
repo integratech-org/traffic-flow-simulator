@@ -20,6 +20,9 @@ from src.simulation.schemas import (
 CAR, MOTO = 0, 1
 TYPE_NAMES = {CAR: "car", MOTO: "motorcycle"}
 
+# TASK_SEGMENTED_CONGESTION: Segment size for granular congestion visualization
+SEGMENT_SIZE = 20  # cells (100m with 5m cell size) - detailed Google Maps-style
+
 TICK_SECONDS = 1.0  # 1 tick = 1 second of simulated time
 
 # one signal per leg; inbound lanes stop at their leg's signal.
@@ -561,9 +564,56 @@ class TrafficEngine:
                 self.next_vid += 1
 
     # ---- output ----
+    def _calculate_lane_segments(self, lane: LaneState) -> list[dict[str, Any]]:
+        """TASK_SEGMENTED_CONGESTION: Calculate congestion for segments of a lane.
+
+        Divides lane into fixed-size segments (SEGMENT_SIZE cells each) and computes
+        congestion level per segment for Google Maps-style visualization.
+
+        Returns list of segments with start_cell, end_cell, level, density, vehicle_count.
+        """
+        segments = []
+
+        for start_cell in range(0, lane.length, SEGMENT_SIZE):
+            end_cell = min(start_cell + SEGMENT_SIZE, lane.length)
+
+            # Count vehicles in this segment
+            vehicles_in_segment = sum(
+                1 for pos in lane.pos if start_cell <= pos < end_cell
+            )
+
+            # Calculate density for this segment
+            segment_length = end_cell - start_cell
+            density = (
+                vehicles_in_segment / segment_length if segment_length > 0 else 0.0
+            )
+
+            # Determine congestion level based on density
+            if density < LIGHT_MAX:
+                level = "light"  # Green
+            elif density < MODERATE_MAX:
+                level = "moderate"  # Orange
+            else:
+                level = "heavy"  # Red
+
+            segments.append(
+                {
+                    "lane_id": lane.id,
+                    "start_cell": start_cell,
+                    "end_cell": end_cell,
+                    "level": level,
+                    "density": round(density, 3),
+                    "vehicle_count": vehicles_in_segment,
+                }
+            )
+
+        return segments
+
     def snapshot(self) -> dict[str, Any]:
         vehicles: list[dict[str, Any]] = []
         congestion: list[dict[str, Any]] = []
+        segments: list[dict[str, Any]] = []  # TASK_SEGMENTED_CONGESTION
+
         for lane in self.lanes.values():
             for vid, vt, pos, spd in zip(
                 lane.vid.tolist(),
@@ -597,17 +647,23 @@ class TrafficEngine:
                     "volume": lane.n,
                 }
             )
+
+            # TASK_SEGMENTED_CONGESTION: Calculate segment-level congestion
+            segments.extend(self._calculate_lane_segments(lane))
+
         signals = [
             {
                 "signal_id": sid,
                 "leg_id": leg,
                 "phase": self.signals.phase(sid, self.tick).value,
+                "seconds_remaining": self.signals.seconds_remaining(sid, self.tick),
             }
             for leg, sid in LEG_SIGNAL.items()
         ]
         return {
             "vehicles": vehicles,
             "congestion": congestion,
+            "segments": segments,  # TASK_SEGMENTED_CONGESTION: Add segments to output
             "signals": signals,
             "metrics": self.metrics(),
             "accidents": [

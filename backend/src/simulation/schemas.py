@@ -193,10 +193,22 @@ class LaneCongestion(BaseModel):
     volume: int
 
 
+class LaneSegment(BaseModel):
+    """TASK_SEGMENTED_CONGESTION: Individual segment of a lane with localized congestion"""
+
+    lane_id: str
+    start_cell: int  # Starting cell index
+    end_cell: int  # Ending cell index (exclusive)
+    level: str  # "light" | "moderate" | "heavy"
+    density: float  # Vehicles per cell in this segment
+    vehicle_count: int  # Number of vehicles in this segment
+
+
 class SignalStatus(BaseModel):
     signal_id: str
     leg_id: str
     phase: str  # "green" | "yellow" | "red"
+    seconds_remaining: int  # Countdown timer for current phase
 
 
 class Metrics(BaseModel):
@@ -234,6 +246,9 @@ class TickMessage(BaseModel):
     tick: int
     vehicles: list[VehicleState] = []
     congestion: list[LaneCongestion] = []
+    segments: list[
+        LaneSegment
+    ] = []  # TASK_SEGMENTED_CONGESTION: Segment-level congestion
     signals: list[SignalStatus] = []
     metrics: Metrics | None = None
     accidents: list[Accident] = []
