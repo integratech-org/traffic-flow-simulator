@@ -5,9 +5,13 @@ import multiprocessing
 import time
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
 from concurrent.futures.process import BrokenProcessPool
+from typing import TYPE_CHECKING
 
 import numpy as np
 from fastapi import HTTPException
+
+if TYPE_CHECKING:
+    from src.simulation.models import Run
 
 from src.engine.engine import TrafficEngine
 from src.network.schemas import Network
@@ -458,3 +462,39 @@ def run_optimization(
         elapsed_seconds=elapsed_seconds,
         total_evaluations=total_evaluations,
     )
+
+
+def run_optimization_realtime(
+    request: OptimizationRequest, run: "Run", network: Network
+) -> OptimizationResult:
+    """TASK_REALTIME_OPTIMIZE: Run optimization using current simulation state.
+
+    Unlike standard optimization which starts fresh simulations, this uses
+    the running simulation's current state as the baseline for testing
+    candidate signal plans.
+
+    Args:
+        request: Optimization parameters (population, generations, weights, etc.)
+        run: The currently running simulation
+        network: Network geometry
+
+    Returns:
+        OptimizationResult with best signal plan (also auto-applied to run)
+    """
+    if run.engine is None:
+        raise HTTPException(status_code=400, detail="Simulation not initialized")
+
+    # Use the base_config from request but keep current simulation state
+    # The genetic algorithm will test different signal plans against current traffic
+    result = run_optimization(request, network)
+
+    # TASK_REALTIME_OPTIMIZE: Apply the optimized plan immediately to running simulation
+    run.engine.set_signal_plan(result.best_signal_plan)
+    run.config.signal_plan = result.best_signal_plan
+
+    logger.info(
+        f"Real-time optimization complete for run {run.run_id}. "
+        f"Applied new signal plan with fitness {result.best_metrics.fitness:.3f}"
+    )
+
+    return result
