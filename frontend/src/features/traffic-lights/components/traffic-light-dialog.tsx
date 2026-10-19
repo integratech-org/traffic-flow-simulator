@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { X, Sparkles } from "lucide-react"
 import { useSimStore } from "@/features/simulation/store"
-import { OptimizationDialog } from "./optimization-dialog"
+import { RealTimeOptimizationDialog } from "./realtime-optimization-dialog"
 
 interface TrafficLightTiming {
   green: string
@@ -40,7 +40,7 @@ export function TrafficLightDialog({
   // Validation errors state
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Optimization dialog state
+  // Real-time optimization dialog state
   const [isOptimizationOpen, setIsOptimizationOpen] = useState(false)
 
   // Initialize from store config
@@ -357,7 +357,7 @@ export function TrafficLightDialog({
               )}
             </div>
 
-            {/* Auto Optimize Button */}
+            {/* Auto Optimize Button - Now uses Real-Time Optimization */}
             <Button
               onClick={() => setIsOptimizationOpen(true)}
               variant="outline"
@@ -378,38 +378,11 @@ export function TrafficLightDialog({
         </Tabs>
       </CardContent>
 
-      {/* Optimization Dialog */}
+      {/* Real-Time Optimization Dialog */}
       {isOptimizationOpen && (
-        <OptimizationDialog
+        <RealTimeOptimizationDialog
           open={isOptimizationOpen}
           onOpenChange={setIsOptimizationOpen}
-          onOptimizationComplete={() => {
-            // Sync the local config with the updated store config
-            const signalTimers =
-              useSimStore.getState().config.signal_plan.signal_timers
-            setConfig({
-              north: {
-                green: String(signalTimers[0]?.green ?? 30),
-                yellow: String(signalTimers[0]?.yellow ?? 5),
-                red: String(signalTimers[0]?.red ?? 30),
-              },
-              south: {
-                green: String(signalTimers[1]?.green ?? 30),
-                yellow: String(signalTimers[1]?.yellow ?? 5),
-                red: String(signalTimers[1]?.red ?? 30),
-              },
-              east: {
-                green: String(signalTimers[2]?.green ?? 30),
-                yellow: String(signalTimers[2]?.yellow ?? 5),
-                red: String(signalTimers[2]?.red ?? 30),
-              },
-              west: {
-                green: String(signalTimers[3]?.green ?? 30),
-                yellow: String(signalTimers[3]?.yellow ?? 5),
-                red: String(signalTimers[3]?.red ?? 30),
-              },
-            })
-          }}
         />
       )}
     </Card>
