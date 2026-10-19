@@ -35,3 +35,19 @@ class SignalController:
 
     def can_pass(self, signal_id: str, tick: int) -> bool:
         return self.phase(signal_id, tick) == Phase.green  # yellow = stop
+
+    def seconds_remaining(self, signal_id: str, tick: int) -> int:
+        """Calculate seconds remaining in current phase."""
+        green, yellow, red, start = self.timers[signal_id]
+        cycle_length = green + yellow + red
+        t = (tick - start) % cycle_length
+
+        if t < green:
+            # In green phase
+            return green - t
+        elif t < green + yellow:
+            # In yellow phase
+            return (green + yellow) - t
+        else:
+            # In red phase
+            return cycle_length - t
