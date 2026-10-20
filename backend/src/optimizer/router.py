@@ -1,11 +1,17 @@
 """FastAPI router for traffic light optimization endpoints."""
 
-from fastapi import APIRouter, Request
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Request
 
 from src.optimizer.schemas import OptimizationRequest, OptimizationResult
-from src.optimizer.service import run_optimization
+from src.optimizer.service import run_optimization, run_optimization_realtime
+from src.simulation.dependencies import valid_run_id
+from src.simulation.models import Run
 
 router = APIRouter(prefix="/optimization", tags=["Optimization"])
+
+RunDep = Annotated[Run, Depends(valid_run_id)]
 
 
 @router.post("/optimize", response_model=OptimizationResult)
@@ -96,3 +102,32 @@ async def optimize_signal_plan(
     """
     network_data = request.state.network_data
     return run_optimization(req, network_data)
+
+
+@router.post("/optimize-realtime/{run_id}", response_model=OptimizationResult)
+async def optimize_realtime(
+    run: RunDep, req: OptimizationRequest, request: Request
+) -> OptimizationResult:
+    """TASK_REALTIME_OPTIMIZE: Optimize signal plan using CURRENT traffic state.
+
+    This endpoint optimizes traffic signals while the simulation is RUNNING,
+    using the current traffic conditions as baseline. The optimized plan is
+    automatically applied to the running simulation.
+
+    Unlike the standard optimize endpoint which starts from scratch, this endpoint:
+    - Uses current vehicle positions and traffic patterns
+    - Keeps simulation running during optimization (background processing)
+    - Applies new signal plan immediately upon completion
+    - More realistic as it adapts to actual traffic conditions
+
+    **Use Case:**
+    User starts simulation → Traffic builds up → Click "Optimize Now" →
+    System finds better signal timing → Apply immediately
+
+    **Runtime:** Same as standard optimize (5-60 seconds depending on parameters)
+
+    **Returns:** Same as standard optimize, plus the new plan is live in the simulation
+    """
+    network_data = request.state.network_data
+    result = run_optimization_realtime(req, run, network_data)
+    return result

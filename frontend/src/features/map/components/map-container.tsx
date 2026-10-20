@@ -4,6 +4,7 @@ import { MapControls } from "./map-controls"
 import { ZoomControls } from "./zoom-controls"
 import { MetricsSidebar } from "@/features/analytics/components/metrics-sidebar"
 import { TrafficLightDialog } from "@/features/traffic-lights/components/traffic-light-dialog"
+import { TrafficLightStatusPanel } from "@/features/traffic-lights/components/traffic-light-status-panel"
 import { VehicleConfigDialog } from "@/features/vehicles/components/vehicle-config-dialog"
 import { ScenarioSettingsDialog } from "@/features/settings/components/scenario-settings-dialog"
 import { AccidentPlacementDialog } from "@/features/accidents/components/accident-placement-dialog"
@@ -12,17 +13,20 @@ import { useState } from "react"
 import { SimulationLayers } from "@/features/simulation/components/simulation-layers"
 import { useSimulationControls } from "@/features/simulation/hooks/use-simulation-controls"
 import { useTickStream } from "@/features/simulation/hooks/use-tick-stream"
+import { useSimStore } from "@/features/simulation/store"
 
 function MapContainer() {
   const { laneById, errors } = useNetwork()
   const { status, toggle, reset } = useSimulationControls()
   useTickStream() // pass "car" | "motorcycle" to filter by vehicle type
+  const tick = useSimStore((s) => s.tick) // Get tick data for conditional rendering
   const [isTrafficLightDialogOpen, setIsTrafficLightDialogOpen] =
     useState(false)
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false)
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
   const [isAccidentDialogOpen, setIsAccidentDialogOpen] = useState(false)
   const [isMetricsSidebarOpen, setIsMetricsSidebarOpen] = useState(false)
+  const [isSignalStatusOpen, setIsSignalStatusOpen] = useState(false)
   const [activeDirection, setActiveDirection] = useState<
     "north" | "south" | "east" | "west"
   >("north")
@@ -33,24 +37,37 @@ function MapContainer() {
     setIsTrafficLightDialogOpen(true)
     setIsVehicleDialogOpen(false)
     setIsSettingsDialogOpen(false)
+    setIsSignalStatusOpen(false)
   }
 
   const handleVehicleClick = () => {
     setIsVehicleDialogOpen(true)
     setIsTrafficLightDialogOpen(false)
     setIsSettingsDialogOpen(false)
+    setIsSignalStatusOpen(false)
   }
 
   const handleSettingsClick = () => {
     setIsSettingsDialogOpen(true)
     setIsTrafficLightDialogOpen(false)
     setIsVehicleDialogOpen(false)
+    setIsSignalStatusOpen(false)
   }
 
   const handleAddAccidentFromSettings = () => {
     console.log("Add Accident clicked - opening dialog")
     setIsAccidentDialogOpen(true)
     // Keep settings dialog open so user can return to it
+  }
+
+  const handleSignalStatusClick = () => {
+    setIsSignalStatusOpen((open) => !open)
+    // Close other dialogs
+    if (!isSignalStatusOpen) {
+      setIsTrafficLightDialogOpen(false)
+      setIsVehicleDialogOpen(false)
+      setIsSettingsDialogOpen(false)
+    }
   }
 
   if (errors) {
@@ -83,10 +100,12 @@ function MapContainer() {
         onTrafficLightClick={handleTrafficLightClick}
         onVehicleClick={handleVehicleClick}
         onSettingsClick={handleSettingsClick}
+        onSignalStatusClick={handleSignalStatusClick}
         isTrafficLightActive={isTrafficLightDialogOpen}
         isVehicleActive={isVehicleDialogOpen}
         isSettingsActive={isSettingsDialogOpen}
         isMetricsActive={isMetricsSidebarOpen}
+        isSignalStatusActive={isSignalStatusOpen}
         isSidebarOpen={isMetricsSidebarOpen}
       />
 
@@ -117,6 +136,12 @@ function MapContainer() {
         onOpenChange={setIsAccidentDialogOpen}
       />
 
+      {/* Traffic Light Status Panel */}
+      <TrafficLightStatusPanel
+        open={isSignalStatusOpen}
+        onClose={() => setIsSignalStatusOpen(false)}
+      />
+
       {/* Map Container */}
       <LeafletMap
         className="h-full w-full"
@@ -132,8 +157,8 @@ function MapContainer() {
 
         {laneById && <SimulationLayers laneById={laneById} />}
 
-        {/* Direction Markers - Only visible when traffic light dialog is open */}
-        {isTrafficLightDialogOpen && (
+        {/* Direction Markers - Only visible when traffic light dialog is open AND simulation not running */}
+        {isTrafficLightDialogOpen && !tick && (
           <DirectionMarkers
             center={junctionCenter}
             activeDirection={activeDirection}

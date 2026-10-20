@@ -3,45 +3,43 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select"
+// COMMENTED OUT: Unused imports since Color/Size selects are commented out
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+// } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { X } from "lucide-react"
 import { useSimStore } from "@/features/simulation/store"
-import carIcon from "../assets/car.svg"
-import motorcycleIcon from "../assets/motorcycle.svg"
+// COMMENTED OUT: Unused imports since Vehicle Type section is commented out
+// import carIcon from "../assets/car.svg"
+// import motorcycleIcon from "../assets/motorcycle.svg"
 
 interface VehicleParams {
   maxSpeed: string
-  minSpeed: string
+  // FIX_TASK1: Removed minSpeed - standard NaSch allows speed=0 naturally
   randomSlowdown: string
 }
 
-interface VehicleDisplay {
-  color: string
-  size: string
-}
+// COMMENTED OUT: VehicleDisplay interface not needed since Color/Size are hidden
+// interface VehicleDisplay {
+//   color: string
+//   size: string
+// }
 
 interface VehicleConfigDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const VEHICLE_COLORS = [
-  { name: "Red", value: "#ef4444" },
-  { name: "Orange", value: "#f97316" },
-  { name: "Yellow", value: "#eab308" },
-  { name: "Green", value: "#22c55e" },
-  { name: "Blue", value: "#3b82f6" },
-  { name: "Indigo", value: "#6366f1" },
-  { name: "Purple", value: "#a855f7" },
-  { name: "Pink", value: "#ec4899" },
-  { name: "White", value: "#ffffff" },
-]
+// COMMENTED OUT: VEHICLE_COLORS not needed since Color select is hidden
+// const VEHICLE_COLORS = [
+//   { name: "Red", value: "#ef4444" },
+//   { name: "Orange", value: "#f97316" },
+//   ...
+// ]
 
 export function VehicleConfigDialog({
   open,
@@ -49,8 +47,9 @@ export function VehicleConfigDialog({
 }: VehicleConfigDialogProps) {
   const simConfig = useSimStore((s) => s.config)
   const patchConfig = useSimStore((s) => s.patchConfig)
-  const vehicleDisplay = useSimStore((s) => s.vehicleDisplay)
-  const setVehicleDisplay = useSimStore((s) => s.setVehicleDisplay)
+  // COMMENTED OUT: vehicleDisplay state not needed since Color/Size are hidden
+  // const vehicleDisplay = useSimStore((s) => s.vehicleDisplay)
+  // const setVehicleDisplay = useSimStore((s) => s.setVehicleDisplay)
 
   const [vehicleType, setVehicleType] = useState<"car" | "motorcycle">("car")
 
@@ -62,7 +61,6 @@ export function VehicleConfigDialog({
     const carParams = simConfig.vehicle_params.car
     return {
       maxSpeed: String(carParams.v_max),
-      minSpeed: String(carParams.v_min),
       randomSlowdown: String(carParams.p_slow),
     }
   })
@@ -72,24 +70,23 @@ export function VehicleConfigDialog({
       const motoParams = simConfig.vehicle_params.motorcycle
       return {
         maxSpeed: String(motoParams.v_max),
-        minSpeed: String(motoParams.v_min),
         randomSlowdown: String(motoParams.p_slow),
       }
     }
   )
 
-  // Display config (color and size)
-  const [carDisplay, setCarDisplay] = useState<VehicleDisplay>(() => ({
-    color: vehicleDisplay.car.color,
-    size: String(vehicleDisplay.car.size),
-  }))
-
-  const [motorcycleDisplay, setMotorcycleDisplay] = useState<VehicleDisplay>(
-    () => ({
-      color: vehicleDisplay.motorcycle.color,
-      size: String(vehicleDisplay.motorcycle.size),
-    })
-  )
+  // COMMENTED OUT: Display config not needed since Color/Size are hidden
+  // const [carDisplay, setCarDisplay] = useState<VehicleDisplay>(() => ({
+  //   color: vehicleDisplay.car.color,
+  //   size: String(vehicleDisplay.car.size),
+  // }))
+  //
+  // const [motorcycleDisplay, setMotorcycleDisplay] = useState<VehicleDisplay>(
+  //   () => ({
+  //     color: vehicleDisplay.motorcycle.color,
+  //     size: String(vehicleDisplay.motorcycle.size),
+  //   })
+  // )
 
   // Reset to store values when dialog opens
   useEffect(() => {
@@ -97,41 +94,42 @@ export function VehicleConfigDialog({
       const carParams = simConfig.vehicle_params.car
       const motoParams = simConfig.vehicle_params.motorcycle
 
+      // oxlint-disable-next-line react/set-state-in-effect
       setCarConfig({
         maxSpeed: String(carParams.v_max),
-        minSpeed: String(carParams.v_min),
         randomSlowdown: String(carParams.p_slow),
       })
 
       setMotorcycleConfig({
         maxSpeed: String(motoParams.v_max),
-        minSpeed: String(motoParams.v_min),
         randomSlowdown: String(motoParams.p_slow),
       })
 
-      setCarDisplay({
-        color: vehicleDisplay.car.color,
-        size: String(vehicleDisplay.car.size),
-      })
-
-      setMotorcycleDisplay({
-        color: vehicleDisplay.motorcycle.color,
-        size: String(vehicleDisplay.motorcycle.size),
-      })
+      // COMMENTED OUT: Display config reset not needed since Color/Size are hidden
+      // setCarDisplay({
+      //   color: vehicleDisplay.car.color,
+      //   size: String(vehicleDisplay.car.size),
+      // })
+      //
+      // setMotorcycleDisplay({
+      //   color: vehicleDisplay.motorcycle.color,
+      //   size: String(vehicleDisplay.motorcycle.size),
+      // })
 
       // Clear errors when dialog opens
       setErrors({})
     }
-  }, [open, simConfig.vehicle_params, vehicleDisplay])
+  }, [open, simConfig.vehicle_params]) // Removed vehicleDisplay dependency
 
   // Get current config based on selected vehicle type
   const currentConfig = vehicleType === "car" ? carConfig : motorcycleConfig
   const setCurrentConfig =
     vehicleType === "car" ? setCarConfig : setMotorcycleConfig
 
-  const currentDisplay = vehicleType === "car" ? carDisplay : motorcycleDisplay
-  const setCurrentDisplay =
-    vehicleType === "car" ? setCarDisplay : setMotorcycleDisplay
+  // COMMENTED OUT: Display config not needed since Color/Size are hidden
+  // const currentDisplay = vehicleType === "car" ? carDisplay : motorcycleDisplay
+  // const setCurrentDisplay =
+  //   vehicleType === "car" ? setCarDisplay : setMotorcycleDisplay
 
   const handleChange = (field: keyof VehicleParams, value: string) => {
     setCurrentConfig((prev) => ({
@@ -150,22 +148,14 @@ export function VehicleConfigDialog({
     }
   }
 
-  const handleDisplayChange = (field: keyof VehicleDisplay, value: string) => {
-    setCurrentDisplay((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-
-    // Clear error for this field
-    const errorKey = `${vehicleType}.${field}`
-    if (errors[errorKey]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[errorKey]
-        return newErrors
-      })
-    }
-  }
+  // COMMENTED OUT: handleDisplayChange not needed since Color/Size are hidden
+  // const handleDisplayChange = (field: keyof VehicleDisplay, value: string) => {
+  //   setCurrentDisplay((prev) => ({
+  //     ...prev,
+  //     [field]: value,
+  //   }))
+  //   ...
+  // }
 
   const handleVehicleTypeChange = (value: string) => {
     setVehicleType(value as "car" | "motorcycle")
@@ -176,19 +166,15 @@ export function VehicleConfigDialog({
 
     // Validate both car and motorcycle configs
     const configs = [
-      { type: "car", config: carConfig, display: carDisplay },
-      {
-        type: "motorcycle",
-        config: motorcycleConfig,
-        display: motorcycleDisplay,
-      },
+      { type: "car", config: carConfig },
+      { type: "motorcycle", config: motorcycleConfig },
     ]
 
-    configs.forEach(({ type, config, display }) => {
+    configs.forEach(({ type, config }) => {
       const maxSpeed = Number(config.maxSpeed)
-      const minSpeed = Number(config.minSpeed)
       const randomSlowdown = Number(config.randomSlowdown)
-      const size = Number(display.size)
+      // COMMENTED OUT: size validation not needed since Vehicle Size is hidden
+      // const size = Number(display.size)
 
       // Validate max speed
       if (isNaN(maxSpeed) || maxSpeed <= 0) {
@@ -199,24 +185,22 @@ export function VehicleConfigDialog({
         newErrors[`${type}.maxSpeed`] = "Cannot exceed 20 cells/s"
       }
 
-      // Validate min speed
-      if (isNaN(minSpeed) || minSpeed < 0) {
-        newErrors[`${type}.minSpeed`] = "Must be 0 or greater"
-      } else if (minSpeed > maxSpeed) {
-        newErrors[`${type}.minSpeed`] = "Cannot exceed maximum speed"
-      }
+      // FIX_TASK1: Removed minSpeed validation - standard NaSch allows speed=0
 
       // Validate random slowdown probability
       if (isNaN(randomSlowdown) || randomSlowdown < 0 || randomSlowdown > 1) {
         newErrors[`${type}.randomSlowdown`] = "Must be between 0 and 1"
       }
 
+      // COMMENTED OUT: Size validation since Vehicle Size is hidden
+      /*
       // Validate size
       if (isNaN(size) || size < 1) {
         newErrors[`${type}.size`] = "Must be at least 1px"
       } else if (size > 10) {
         newErrors[`${type}.size`] = "Cannot exceed 10px"
       }
+      */
     })
 
     setErrors(newErrors)
@@ -257,6 +241,7 @@ export function VehicleConfigDialog({
 
           <TabsContent value={vehicleType} className="mt-4 space-y-4">
             {/* Vehicle Type Label with Image */}
+            {/* COMMENTED OUT: Vehicle Type section per user request
             <div className="flex flex-col items-center space-y-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
               <Label className="text-sm font-semibold">Vehicle Type</Label>
               <p className="text-sm text-muted-foreground">
@@ -270,8 +255,9 @@ export function VehicleConfigDialog({
                 className="h-16 w-16"
               />
             </div>
+            */}
 
-            {/* Vehicle Color */}
+            {/* COMMENTED OUT: Vehicle Color per user request
             <div className="space-y-2">
               <Label htmlFor="color" className="text-sm font-normal">
                 Vehicle Color
@@ -312,8 +298,9 @@ export function VehicleConfigDialog({
                 </SelectContent>
               </Select>
             </div>
+            */}
 
-            {/* Vehicle Size */}
+            {/* COMMENTED OUT: Vehicle Size per user request
             <div className="space-y-2">
               <Label
                 htmlFor="size"
@@ -342,6 +329,7 @@ export function VehicleConfigDialog({
                 </p>
               )}
             </div>
+            */}
 
             {/* Maximum Speed */}
             <div className="space-y-2">
@@ -371,33 +359,7 @@ export function VehicleConfigDialog({
               )}
             </div>
 
-            {/* Minimum Speed */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="minSpeed"
-                className={`text-sm font-normal ${errors[`${vehicleType}.minSpeed`] ? "text-red-500" : ""}`}
-              >
-                Minimum Speed
-              </Label>
-              <div className="relative">
-                <Input
-                  id="minSpeed"
-                  type="number"
-                  step="0.01"
-                  value={currentConfig.minSpeed}
-                  onChange={(e) => handleChange("minSpeed", e.target.value)}
-                  className={`pr-20 ${errors[`${vehicleType}.minSpeed`] ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                />
-                <span className="absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">
-                  cells/s
-                </span>
-              </div>
-              {errors[`${vehicleType}.minSpeed`] && (
-                <p className="text-sm text-red-500">
-                  {errors[`${vehicleType}.minSpeed`]}
-                </p>
-              )}
-            </div>
+            {/* FIX_TASK1: Removed Minimum Speed section - standard NaSch allows speed=0 naturally */}
 
             {/* Random Slowdown */}
             <div className="space-y-2">
@@ -443,26 +405,24 @@ export function VehicleConfigDialog({
                   vehicle_params: {
                     car: {
                       v_max: Number(carConfig.maxSpeed),
-                      v_min: Number(carConfig.minSpeed),
                       p_slow: Number(carConfig.randomSlowdown),
                     },
                     motorcycle: {
                       v_max: Number(motorcycleConfig.maxSpeed),
-                      v_min: Number(motorcycleConfig.minSpeed),
                       p_slow: Number(motorcycleConfig.randomSlowdown),
                     },
                   },
                 })
 
-                // Save vehicle display settings
-                setVehicleDisplay("car", {
-                  color: carDisplay.color,
-                  size: Number(carDisplay.size),
-                })
-                setVehicleDisplay("motorcycle", {
-                  color: motorcycleDisplay.color,
-                  size: Number(motorcycleDisplay.size),
-                })
+                // COMMENTED OUT: Display settings save not needed since Color/Size are hidden
+                // setVehicleDisplay("car", {
+                //   color: carDisplay.color,
+                //   size: Number(carDisplay.size),
+                // })
+                // setVehicleDisplay("motorcycle", {
+                //   color: motorcycleDisplay.color,
+                //   size: Number(motorcycleDisplay.size),
+                // })
 
                 onOpenChange(false)
               }}

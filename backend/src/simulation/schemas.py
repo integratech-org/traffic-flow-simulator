@@ -68,18 +68,10 @@ class VehicleParams(BaseModel):
     v_max: int = Field(
         ..., ge=1, le=20, description="Max speed (cells/tick or m/s, see units)"
     )
-    v_min: int = Field(
-        default=0, ge=0, description="Min speed. Keep 0 so vehicles can stop at red."
-    )
+    # FIX_TASK1: Removed v_min field - standard NaSch allows speed=0 naturally
     p_slow: float = Field(
         default=0.2, ge=0, le=1, description="Random slowdown probability"
     )
-
-    @model_validator(mode="after")
-    def must_v_min_be_less_than_v_max(self) -> "VehicleParams":
-        if self.v_min >= self.v_max:
-            raise ValueError("v_min must be less than v_max")
-        return self
 
 
 def default_vehicle_params() -> dict[VehicleType, VehicleParams]:
@@ -96,6 +88,8 @@ def default_vehicle_params() -> dict[VehicleType, VehicleParams]:
     p_slow represents driver hesitation, reaction time, and cautious behavior:
     - Cars: 0.3 (30% chance of slowing per tick)
     - Motorcycles: 0.2 (20% chance - more aggressive driving)
+
+    Note: No minimum speed needed - NaSch naturally allows speed=0 (complete stops)
     """
     return {
         VehicleType.CAR: VehicleParams(v_max=11, p_slow=0.3),
@@ -199,10 +193,22 @@ class LaneCongestion(BaseModel):
     volume: int
 
 
+class LaneSegment(BaseModel):
+    """TASK_SEGMENTED_CONGESTION: Individual segment of a lane with localized congestion"""
+
+    lane_id: str
+    start_cell: int  # Starting cell index
+    end_cell: int  # Ending cell index (exclusive)
+    level: str  # "light" | "moderate" | "heavy"
+    density: float  # Vehicles per cell in this segment
+    vehicle_count: int  # Number of vehicles in this segment
+
+
 class SignalStatus(BaseModel):
     signal_id: str
     leg_id: str
     phase: str  # "green" | "yellow" | "red"
+    seconds_remaining: int  # Countdown timer for current phase
 
 
 class Metrics(BaseModel):
@@ -240,6 +246,9 @@ class TickMessage(BaseModel):
     tick: int
     vehicles: list[VehicleState] = []
     congestion: list[LaneCongestion] = []
+    segments: list[
+        LaneSegment
+    ] = []  # TASK_SEGMENTED_CONGESTION: Segment-level congestion
     signals: list[SignalStatus] = []
     metrics: Metrics | None = None
     accidents: list[Accident] = []

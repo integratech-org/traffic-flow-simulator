@@ -14,10 +14,12 @@ export const DEFAULT_CONFIG: CreateRunRequest = {
   time: "08:00",
   weather_condition: "clear",
   density_scenario: "light",
-  vehicle_mix: { two_wheeler_pct: 40, four_wheeler_pct: 60 },
+  // MMDA_DATA: Real traffic composition from Commonwealth Ave, MMDA AADT 2025
+  // Source: 185,232 motorcycles (46%) + 216,412 other vehicles (54%) = 400,644 total
+  vehicle_mix: { two_wheeler_pct: 46, four_wheeler_pct: 54 },
   vehicle_params: {
-    car: { v_max: 15, v_min: 0, p_slow: 0.2 },
-    motorcycle: { v_max: 20, v_min: 0, p_slow: 0.1 },
+    car: { v_max: 15, p_slow: 0.2 },
+    motorcycle: { v_max: 20, p_slow: 0.1 },
   },
   signal_plan: {
     signal_timers: [1, 2, 3, 4].map((i) => ({

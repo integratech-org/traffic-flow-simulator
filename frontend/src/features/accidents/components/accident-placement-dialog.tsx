@@ -44,8 +44,60 @@ interface TempAccident {
 // Lane colors matching main map
 const LANE_COLOR = { inbound: "#3388ff", outbound: "#888" } as const
 
+// TASK7: Match visual lane widening from simulation-layers
+const LANE_OFFSET_METERS = 3.5
+const METERS_PER_DEGREE_LAT = 111320
+const LANE_WIDTH_BASE = 2.5
+const LANE_WIDTH_PER_LANE = 1
+
 // network.json is [lng, lat]; Leaflet wants [lat, lng]
 const toLatLng = ([lng, lat]: [number, number]): [number, number] => [lat, lng]
+
+/**
+ * TASK7: Calculate perpendicular offset (same as simulation-layers)
+ */
+function calculatePerpendicularOffset(
+  coord: [number, number],
+  nextCoord: [number, number] | undefined,
+  laneIndex: number,
+  offsetMeters: number
+): [number, number] {
+  if (laneIndex === 0 || !nextCoord) {
+    return coord
+  }
+  const [lng1, lat1] = coord
+  const [lng2, lat2] = nextCoord
+  const dLng = lng2 - lng1
+  const dLat = lat2 - lat1
+  const bearing = Math.atan2(dLng, dLat)
+  const perpBearing = bearing + Math.PI / 2
+  const offset = (laneIndex * offsetMeters) / METERS_PER_DEGREE_LAT
+  const latOffset = offset * Math.cos(perpBearing)
+  const lngOffset =
+    offset * Math.sin(perpBearing) * Math.cos((lat1 * Math.PI) / 180)
+  return [lng1 + lngOffset, lat1 + latOffset]
+}
+
+/**
+ * TASK7: Generate offset coordinates (same as simulation-layers)
+ */
+function generateOffsetCoordinates(
+  coords: [number, number][],
+  laneIndex: number
+): [number, number][] {
+  if (laneIndex === 0) {
+    return coords
+  }
+  return coords.map((coord, i) => {
+    const nextCoord = coords[i + 1]
+    return calculatePerpendicularOffset(
+      coord,
+      nextCoord,
+      laneIndex,
+      LANE_OFFSET_METERS
+    )
+  })
+}
 
 // Mindanao Avenue intersection coordinates - tighter bounds
 const INTERSECTION_CENTER: [number, number] = [14.721306, 121.052105]
@@ -79,14 +131,25 @@ export function AccidentPlacementDialog({
   const status = useSimStore((s) => s.status)
   const { laneById } = useNetwork()
 
-  const [duration, setDuration] = useState<string>("180")
+  // FIX_TASK5: Time picker for duration (HH:MM:SS)
+  const [hours, setHours] = useState<string>("0")
+  const [minutes, setMinutes] = useState<string>("3")
+  const [seconds, setSeconds] = useState<string>("0")
   const [tempAccidents, setTempAccidents] = useState<TempAccident[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Calculate total duration in seconds from HH:MM:SS
+  const getTotalSeconds = (): number => {
+    return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds)
+  }
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      setDuration("180")
+      // oxlint-disable-next-line react/set-state-in-effect
+      setHours("0")
+      setMinutes("3")
+      setSeconds("0")
       setTempAccidents([])
       setErrors({})
     }
@@ -125,9 +188,12 @@ export function AccidentPlacementDialog({
       newErrors.map = "Click on the map to place at least one accident"
     }
 
-    const durationNum = Number(duration)
-    if (isNaN(durationNum) || durationNum <= 0) {
-      newErrors.duration = "Duration must be a positive number"
+    // FIX_TASK5: Validate time picker inputs
+    const totalSeconds = getTotalSeconds()
+    if (totalSeconds <= 0) {
+      newErrors.duration = "Duration must be greater than 0"
+    } else if (totalSeconds > 86400) {
+      newErrors.duration = "Duration cannot exceed 24 hours"
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -149,8 +215,8 @@ export function AccidentPlacementDialog({
       return
     }
 
-    // Duration is already in seconds
-    const durationSeconds = durationNum
+    // FIX_TASK5: Use total seconds from time picker
+    const durationSeconds = totalSeconds
 
     // Create accidents for all temporary placements (fixed severity: severe, fixed radius: 8m)
     // ACCIDENT_FIX: Accident coordinates stored in standard geographic order (lat, lon)
@@ -206,19 +272,66 @@ export function AccidentPlacementDialog({
           className="flex-1 space-y-6 overflow-y-auto p-6 px-5 pb-4"
           style={{ scrollbarWidth: "thin" }}
         >
-          {/* Duration (Seconds Only) */}
+          {/* FIX_TASK5: Time Picker for Duration (HH:MM:SS) */}
           <div className="space-y-2">
-            <Label htmlFor="duration" className="text-sm font-normal">
-              Duration (seconds)
-            </Label>
-            <Input
-              id="duration"
-              type="number"
-              min="1"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className={`h-11 ${errors.duration ? "border-red-500" : ""}`}
-            />
+            <Label className="text-sm font-normal">Duration</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="hours"
+                  className="text-xs text-muted-foreground"
+                >
+                  Hours
+                </Label>
+                <Input
+                  id="hours"
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                  className={`h-11 text-center ${errors.duration ? "border-red-500" : ""}`}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="minutes"
+                  className="text-xs text-muted-foreground"
+                >
+                  Minutes
+                </Label>
+                <Input
+                  id="minutes"
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={minutes}
+                  onChange={(e) => setMinutes(e.target.value)}
+                  className={`h-11 text-center ${errors.duration ? "border-red-500" : ""}`}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="seconds"
+                  className="text-xs text-muted-foreground"
+                >
+                  Seconds
+                </Label>
+                <Input
+                  id="seconds"
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={seconds}
+                  onChange={(e) => setSeconds(e.target.value)}
+                  className={`h-11 text-center ${errors.duration ? "border-red-500" : ""}`}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Total: {getTotalSeconds()} seconds (
+              {Math.floor(getTotalSeconds() / 60)}m {getTotalSeconds() % 60}s)
+            </p>
             {errors.duration && (
               <p className="text-sm text-red-500">{errors.duration}</p>
             )}
@@ -263,21 +376,49 @@ export function AccidentPlacementDialog({
                 />
                 <MapClickHandler onMapClick={handleMapClick} />
 
-                {/* Lane overlays - same colors as main map */}
+                {/* TASK7: Lane overlays with visual widening - matches simulation-layers */}
                 {laneById &&
-                  Object.entries(laneById).map(([laneId, lane]) => (
-                    <Polyline
-                      key={laneId}
-                      positions={lane.cellCoords.map(toLatLng)}
-                      pathOptions={{
-                        color:
-                          LANE_COLOR[
-                            lane.direction as "inbound" | "outbound"
-                          ] ?? "#888",
-                        weight: 4,
-                      }}
-                    />
-                  ))}
+                  (() => {
+                    // Calculate lane count per leg+direction for width
+                    const laneCountByLegDir = new Map<string, number>()
+                    Object.values(laneById).forEach((lane) => {
+                      const key = `${lane.legId}_${lane.direction}`
+                      laneCountByLegDir.set(
+                        key,
+                        Math.max(
+                          laneCountByLegDir.get(key) || 0,
+                          lane.laneIndex + 1
+                        )
+                      )
+                    })
+
+                    return Object.entries(laneById).map(([laneId, lane]) => {
+                      const offsetCoords = generateOffsetCoordinates(
+                        lane.cellCoords,
+                        lane.laneIndex
+                      )
+                      const laneCount =
+                        laneCountByLegDir.get(
+                          `${lane.legId}_${lane.direction}`
+                        ) || 1
+                      const weight =
+                        LANE_WIDTH_BASE + LANE_WIDTH_PER_LANE * laneCount
+
+                      return (
+                        <Polyline
+                          key={laneId}
+                          positions={offsetCoords.map(toLatLng)}
+                          pathOptions={{
+                            color:
+                              LANE_COLOR[
+                                lane.direction as "inbound" | "outbound"
+                              ] ?? "#888",
+                            weight,
+                          }}
+                        />
+                      )
+                    })
+                  })()}
 
                 {/* Temporary accident markers */}
                 {tempAccidents.map((acc, idx) => (
@@ -365,11 +506,12 @@ export function AccidentPlacementDialog({
             ) : (
               <>
                 <p>
-                  • Accidents will automatically expire after {duration} seconds
+                  • Accidents will automatically expire after{" "}
+                  {getTotalSeconds()} seconds
                 </p>
                 <p>
                   • Vehicles in the affected area (8m radius) will slow down
-                  dramatically (80% braking)
+                  (80% braking probability)
                 </p>
                 <p>
                   • You can place multiple accidents before closing this dialog

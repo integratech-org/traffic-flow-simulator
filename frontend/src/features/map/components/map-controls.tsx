@@ -8,6 +8,7 @@ import {
   Settings2,
   ChartPie,
   Square,
+  TrafficCone,
 } from "lucide-react"
 
 interface MapControlsProps {
@@ -18,10 +19,12 @@ interface MapControlsProps {
   onTrafficLightClick?: () => void
   onVehicleClick?: () => void
   onSettingsClick?: () => void
+  onSignalStatusClick?: () => void
   isTrafficLightActive?: boolean
   isVehicleActive?: boolean
   isSettingsActive?: boolean
   isMetricsActive?: boolean
+  isSignalStatusActive?: boolean
   isSidebarOpen?: boolean
 }
 
@@ -33,10 +36,12 @@ export function MapControls({
   onTrafficLightClick,
   onVehicleClick,
   onSettingsClick,
+  onSignalStatusClick,
   isTrafficLightActive,
   isVehicleActive,
   isSettingsActive,
   isMetricsActive,
+  isSignalStatusActive,
   isSidebarOpen,
 }: MapControlsProps) {
   return (
@@ -89,6 +94,16 @@ export function MapControls({
             onClick={onSettingsClick}
           >
             <Settings2 className="size-5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`size-10 rounded-full ${isSignalStatusActive ? "bg-[#0D1628] text-white hover:bg-[#0D1628] hover:text-white" : "hover:bg-muted"}`}
+            title="Signal Status"
+            onClick={onSignalStatusClick}
+          >
+            <TrafficCone className="size-5" />
           </Button>
 
           <Button
