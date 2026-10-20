@@ -9,11 +9,11 @@ interface TrafficLightStatusPanelProps {
   onClose: () => void
 }
 
-const SIGNAL_LABELS: Record<string, string> = {
-  S1: "North",
-  S2: "South",
-  S3: "East",
-  S4: "West",
+const SIGNAL_LABELS: Record<string, { name: string; direction: string }> = {
+  S1: { name: "Mindanao SW", direction: "Southwest" },
+  S2: { name: "Commonwealth SW", direction: "Southwest" },
+  S3: { name: "Mindanao NE", direction: "Northeast" },
+  S4: { name: "Commonwealth NE", direction: "Northeast" },
 }
 
 const PHASE_COLORS: Record<string, string> = {
@@ -56,7 +56,10 @@ function TrafficLightIndicator({ phase }: { phase: string }) {
 }
 
 function SignalRow({ signal }: { signal: SignalStatus }) {
-  const label = SIGNAL_LABELS[signal.signal_id] || signal.signal_id
+  const labelInfo = SIGNAL_LABELS[signal.signal_id] || {
+    name: signal.signal_id,
+    direction: "Unknown",
+  }
   const phaseUpper = signal.phase.toUpperCase()
   const instruction = getVehicleInstruction(signal.phase)
 
@@ -72,7 +75,7 @@ function SignalRow({ signal }: { signal: SignalStatus }) {
         <div className="flex-1 space-y-1">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">
-              Road {label} — {label}bound
+              {labelInfo.name} — {labelInfo.direction}bound
             </h3>
             <span
               className={`text-xs font-bold ${PHASE_TEXT_COLORS[signal.phase]}`}
