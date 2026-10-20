@@ -1,20 +1,17 @@
 import { memo, useMemo } from "react"
 import { CircleMarker, Polyline, Marker, Circle } from "react-leaflet"
 import L from "leaflet" // TASK9: For DivIcon
-import type { CongestionLevel, Phase } from "@/api/simulation"
+import type { CongestionLevel } from "@/api/simulation"
 import type { Lane } from "@/features/map/api/get-network"
 import { useSimStore } from "../store"
+import { TrafficLightMarker } from "./traffic-light-marker"
 
 const LEVEL_COLOR: Record<CongestionLevel, string> = {
   light: "#22c55e",
   moderate: "#f97316",
   heavy: "#ef4444",
 }
-const PHASE_COLOR: Record<Phase, string> = {
-  green: "#22c55e",
-  yellow: "#eab308",
-  red: "#ef4444",
-}
+// REALISTIC_TRAFFIC_LIGHTS: PHASE_COLOR removed - now using TrafficLightMarker component
 const ACCIDENT_COLOR = "#ef4444" // Red
 const ACCIDENT_RADIUS = 8 // meters
 const IDLE_COLOR = { inbound: "#3388ff", outbound: "#888" } as const
@@ -220,6 +217,47 @@ export function SimulationLayers({
     })
   }, [laneById])
 
+  // PERFECT_SOLUTION: Map leg IDs to direction positions (using DirectionMarkers offset)
+  const directionPositions = useMemo(() => {
+    const junctionCenter: [number, number] = [14.721306, 121.052105] // [lat, lng]
+    const offset = 0.0008 // Same as DirectionMarkers offset
+    const southOffset = 0.0012 // Larger offset for south to move it further down
+
+    // VISUAL CLARITY: Rearrange so leg names match their visual positions for less confusion
+    // Instead of matching actual road positions, we match label names to visual positions:
+    // - Top = Mindanao NE (NE label makes sense at top-right)
+    // - Right = Commonwealth NE (NE label makes sense at right)
+    // - Bottom = Mindanao SW (SW label makes sense at bottom-left)
+    // - Left = Commonwealth SW (SW label makes sense at left)
+    const legToPosition: Record<
+      string,
+      { position: [number, number]; label: string; color: string }
+    > = {
+      mindanao_ne: {
+        position: [junctionCenter[0] + offset, junctionCenter[1]], // NORTH position (top)
+        label: "Mindanao NE",
+        color: "#3b82f6", // Blue
+      },
+      commonwealth_ne: {
+        position: [junctionCenter[0], junctionCenter[1] + offset], // EAST position (right)
+        label: "Commonwealth NE",
+        color: "#f59e0b", // Orange
+      },
+      mindanao_sw: {
+        position: [junctionCenter[0] - southOffset, junctionCenter[1]], // SOUTH position (bottom)
+        label: "Mindanao SW",
+        color: "#ef4444", // Red
+      },
+      commonwealth_sw: {
+        position: [junctionCenter[0], junctionCenter[1] - offset], // WEST position (left)
+        label: "Commonwealth SW",
+        color: "#10b981", // Green
+      },
+    }
+
+    return legToPosition
+  }, [])
+
   // a signal marker sits on the last cell (stop line) of its leg's inbound lane
   const stopLines = useMemo(() => {
     const out = new Map<string, [number, number]>()
@@ -252,21 +290,49 @@ export function SimulationLayers({
         />
       ))}
 
+      {/* PERFECT_SOLUTION: Large realistic traffic lights at reassigned positions to match diagonal roads */}
       {tick?.signals.map((sig) => {
-        const pos = stopLines.get(sig.leg_id)
-        return pos ? (
+        const directionData = directionPositions[sig.leg_id]
+        if (!directionData) return null
+
+        return (
+          <TrafficLightMarker
+            key={`direction-${sig.signal_id}`}
+            position={directionData.position}
+            phase={sig.phase}
+            signalId={sig.signal_id}
+            directionLabel={directionData.label}
+            directionColor={directionData.color}
+          />
+        )
+      })}
+
+      {/* PERFECT_SOLUTION: Small colored dots at actual stop lines on roads (synced with same signals) */}
+      {tick?.signals.map((sig) => {
+        const stopLinePos = stopLines.get(sig.leg_id)
+        if (!stopLinePos) return null
+
+        // Use same phase colors as big traffic lights for visual consistency
+        const phaseColor =
+          sig.phase === "green"
+            ? "#22c55e"
+            : sig.phase === "yellow"
+              ? "#eab308"
+              : "#ef4444"
+
+        return (
           <CircleMarker
-            key={sig.signal_id}
-            center={pos}
-            radius={8}
+            key={`stopline-${sig.signal_id}`}
+            center={stopLinePos}
+            radius={6}
             pathOptions={{
-              color: "white",
-              weight: 2,
-              fillColor: PHASE_COLOR[sig.phase],
-              fillOpacity: 1,
+              color: phaseColor,
+              weight: 0,
+              fillColor: phaseColor,
+              fillOpacity: 0.7,
             }}
           />
-        ) : null
+        )
       })}
 
       {/* TASK_REMOVE_VEHICLES: Vehicle circles removed to declutter map - congestion colors now show traffic */}

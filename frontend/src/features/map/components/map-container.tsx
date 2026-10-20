@@ -13,11 +13,13 @@ import { useState } from "react"
 import { SimulationLayers } from "@/features/simulation/components/simulation-layers"
 import { useSimulationControls } from "@/features/simulation/hooks/use-simulation-controls"
 import { useTickStream } from "@/features/simulation/hooks/use-tick-stream"
+import { useSimStore } from "@/features/simulation/store"
 
 function MapContainer() {
   const { laneById, errors } = useNetwork()
   const { status, toggle, reset } = useSimulationControls()
   useTickStream() // pass "car" | "motorcycle" to filter by vehicle type
+  const tick = useSimStore((s) => s.tick) // Get tick data for conditional rendering
   const [isTrafficLightDialogOpen, setIsTrafficLightDialogOpen] =
     useState(false)
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false)
@@ -155,8 +157,8 @@ function MapContainer() {
 
         {laneById && <SimulationLayers laneById={laneById} />}
 
-        {/* Direction Markers - Only visible when traffic light dialog is open */}
-        {isTrafficLightDialogOpen && (
+        {/* Direction Markers - Only visible when traffic light dialog is open AND simulation not running */}
+        {isTrafficLightDialogOpen && !tick && (
           <DirectionMarkers
             center={junctionCenter}
             activeDirection={activeDirection}
