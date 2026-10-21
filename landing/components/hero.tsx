@@ -29,7 +29,8 @@ export function Hero() {
 
           <p className="mt-3 max-w-md text-base lg:max-w-xl lg:text-xl">
             A Cellular Automata-Based Traffic Simulation and Signal Timing
-            Optimization System in Mindanao Ave and Congressional Ave crossing
+            Optimization System in Mindanao Avenue and Commonwealth Avenue
+            crossing
           </p>
         </div>
       </div>
