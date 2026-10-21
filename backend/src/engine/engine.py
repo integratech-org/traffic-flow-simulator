@@ -641,7 +641,7 @@ class TrafficEngine:
                     avg_speed / max_possible_speed if max_possible_speed > 0 else 1.0
                 )
             else:
-                avg_speed = 0
+                avg_speed = np.float64(0.0)
                 speed_ratio = 1.0  # No vehicles = no congestion
 
             # Determine congestion level based on BOTH density AND speed
