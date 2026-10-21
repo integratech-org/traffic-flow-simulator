@@ -1,19 +1,23 @@
-import { Button } from "@/components/ui/button"
+import Header from "@/components/shadcn-space/blocks/topbar-04/header"
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      {/* MAIN CONTENT */}
+      <main className="mx-auto max-w-7xl p-4 md:p-6">
+        <div className="h-[585px] overflow-hidden rounded-xl border border-border">
+          <div className="flex flex-1 flex-col gap-4 p-4">
+            {Array.from({ length: 9 }).map((_, index) => (
+              <div
+                key={index}
+                className="skeleton aspect-video h-12 w-full rounded-lg bg-muted/50"
+              />
+            ))}
+          </div>
         </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
+      </main>
     </div>
   )
 }
