@@ -1,3 +1,4 @@
+import { Hero } from "@/components/hero"
 import Header from "@/components/shadcn-space/blocks/topbar-04/header"
 
 export default function Page() {
@@ -6,17 +7,8 @@ export default function Page() {
       <Header />
 
       {/* MAIN CONTENT */}
-      <main className="mx-auto max-w-7xl p-4 md:p-6">
-        <div className="h-[585px] overflow-hidden rounded-xl border border-border">
-          <div className="flex flex-1 flex-col gap-4 p-4">
-            {Array.from({ length: 9 }).map((_, index) => (
-              <div
-                key={index}
-                className="skeleton aspect-video h-12 w-full rounded-lg bg-muted/50"
-              />
-            ))}
-          </div>
-        </div>
+      <main>
+        <Hero />
       </main>
     </div>
   )
