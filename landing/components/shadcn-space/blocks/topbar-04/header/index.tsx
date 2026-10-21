@@ -45,9 +45,9 @@ export default function Header() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background">
+    <header className="sticky top-0 z-50 h-16 border-b bg-[#F1ECEA]">
       {/* TOP BAR */}
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5">
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4">
         {/* LEFT */}
         <div className="flex items-center gap-3">
           {/* Mobile Sidebar */}
@@ -83,7 +83,9 @@ export default function Header() {
 
           <Link href="#" className="flex items-center gap-2">
             <Image src={Logo} alt="logo" className="mr-1 size-6" />
-            <span className="text-lg font-bold whitespace-nowrap">TALA</span>
+            <h1 className="font-sans text-lg font-bold whitespace-nowrap">
+              TALA
+            </h1>
           </Link>
         </div>
 

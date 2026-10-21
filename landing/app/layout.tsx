@@ -1,13 +1,19 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import { Inter, JetBrains_Mono, Anton } from "next/font/google"
 
 import "./globals.css"
 import { cn } from "@/lib/utils"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
-const fontMono = Geist_Mono({
+const fontMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+})
+
+const fontHeading = Anton({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-heading",
 })
 
 export default function RootLayout({
@@ -22,11 +28,12 @@ export default function RootLayout({
       className={cn(
         "antialiased",
         fontMono.variable,
+        fontHeading.variable,
         "font-sans",
-        geist.variable
+        inter.variable
       )}
     >
-      <body>{children} </body>
+      <body>{children}</body>
     </html>
   )
 }
