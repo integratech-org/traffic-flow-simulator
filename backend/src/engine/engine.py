@@ -35,10 +35,10 @@ LEG_SIGNAL = {
 }
 
 RAIN_EXTRA_P_SLOW = 0.10
-ACCIDENT_P_SLOW = 0.95  # Very high slowdown probability (95%)
-ACCIDENT_RADIUS_METERS = (
-    30  # Larger radius so vehicles detect and stop earlier (30 meters)
-)
+ACCIDENT_RADIUS_METERS = 150  # Accident affect zone (150 meters = ~20 cells)
+ACCIDENT_APPROACH_METERS = 300  # Early warning zone (300 meters = ~40 cells)
+ACCIDENT_SPEED_LIMIT = 1  # Max speed in accident zone (1 cell/tick = ~7.5 m/s)
+ACCIDENT_APPROACH_SPEED = 2  # Max speed approaching accident (2 cells/tick)
 FREE = 10_000  # "nothing ahead"
 EXIT_GAP = 20  # cells a lead vehicle sees past the end of an exit lane
 LIGHT_MAX, MODERATE_MAX = 0.15, 0.35  # density thresholds for congestion level
@@ -252,6 +252,31 @@ class TrafficEngine:
             dist = np.sqrt(lat_diff**2 + lon_diff**2)
 
             if dist <= ACCIDENT_RADIUS_METERS:
+                return True
+
+        return False
+
+    def _is_vehicle_approaching_accident(
+        self, lane: LaneState, vehicle_idx: int
+    ) -> bool:
+        """Check if a vehicle is approaching any accident (within warning distance)."""
+        if not self.accidents:
+            return False
+
+        # Get vehicle's position
+        cell_idx = int(lane.pos[vehicle_idx])
+        if cell_idx >= len(self.network.lanes[lane.id].cellCoords):
+            return False
+
+        lon, lat = self.network.lanes[lane.id].cellCoords[cell_idx]
+
+        # Check if approaching any active accident
+        for accident in self.get_active_accidents():
+            lat_diff = abs(lat - accident.lat) * 111000
+            lon_diff = abs(lon - accident.lon) * 111000
+            dist = np.sqrt(lat_diff**2 + lon_diff**2)
+
+            if dist <= ACCIDENT_APPROACH_METERS:
                 return True
 
         return False
@@ -475,17 +500,32 @@ class TrafficEngine:
             # FIX_TASK4: Removed solid wall block logic - accidents now cause slowdown, not complete blocking
             # Vehicles can pass through accident zones (removed gap restriction)
 
-            # FIX_TASK4: First, identify vehicles in accident zones
-            # This is needed for both accident slowdown AND vehicle recognition logic
-            accident_affected = np.zeros(lane.n, dtype=bool)
+            # ACCIDENT DETECTION: Identify vehicles in accident zones and approaching
+            accident_affected = np.zeros(lane.n, dtype=bool)  # In accident zone
+            accident_approaching = np.zeros(lane.n, dtype=bool)  # Approaching accident
+
             for i in range(lane.n):
-                in_accident_zone = self._is_vehicle_in_accident_zone(lane, i)
-                if in_accident_zone:
+                in_zone = self._is_vehicle_in_accident_zone(lane, i)
+                approaching = self._is_vehicle_approaching_accident(lane, i)
+
+                if in_zone:
                     accident_affected[i] = True
+                elif approaching:
+                    accident_approaching[i] = True
 
             # FIX_TASK2: Standard NaSch - accelerate, then limit by gap
             # Standard NaSch: accelerate, then limit by gap, then random slowdown
             v = np.minimum(lane.spd + 1, self.vmax[vt])  # 1. accelerate
+
+            # ACCIDENT IMPACT: Enforce speed limits
+            for i in range(lane.n):
+                if accident_affected[i]:
+                    # Strict speed limit in accident zone
+                    v[i] = min(v[i], ACCIDENT_SPEED_LIMIT)
+                elif accident_approaching[i]:
+                    # Moderate speed limit when approaching
+                    v[i] = min(v[i], ACCIDENT_APPROACH_SPEED)
+
             v = np.minimum(
                 v, gap
             )  # 2. collision avoidance (speed limited by gap ahead)
@@ -494,23 +534,19 @@ class TrafficEngine:
             # Vehicles recognize and respond to the vehicle ahead, except in accident zones
             v = self._adjust_speed_for_leader(lane, v, gap, accident_affected)
 
-            # FIX_TASK4: Accident slowdown behavior (80% probability)
+            # ACCIDENT SLOWDOWN: Higher slowdown probability near accidents
             # 3. random slowdown (base + accident-affected)
             pslow_effective = np.full(lane.n, self.pslow[vt[0]], dtype=float)
             for i in range(lane.n):
                 if accident_affected[i]:
-                    # OPTION 1: 80% probability only, no speed penalty
-                    # This provides strong slowdown without chain reaction effect
-                    pslow_effective[i] = (
-                        0.80  # 80% chance to slow down in accident zone
-                    )
+                    # Very high slowdown in accident zone (95%)
+                    pslow_effective[i] = 0.95
+                elif accident_approaching[i]:
+                    # Moderate slowdown when approaching (60%)
+                    pslow_effective[i] = 0.60
 
             slow = (self.rng.random(lane.n) < pslow_effective) & (v > 0)
             v = v - slow
-
-            # OPTION 1: Removed speed penalty - probability-based slowdown is sufficient
-            # This prevents chain reaction where entire queue drops to near-zero speed
-            # (Removed: v = np.where(accident_affected, np.maximum(v - 1, 0), v))
 
             # FIX_TASK1: Removed minimum speed enforcement (line was: v = np.maximum(v, np.minimum(self.vmin[vt], gap)))
             # Standard NaSch allows vehicles to reach speed 0, especially at red lights
@@ -570,6 +606,10 @@ class TrafficEngine:
         Divides lane into fixed-size segments (SEGMENT_SIZE cells each) and computes
         congestion level per segment for Google Maps-style visualization.
 
+        Congestion is determined by BOTH density AND average speed:
+        - High density OR low speed → congestion
+        - This makes accidents visible even with moderate vehicle counts
+
         Returns list of segments with start_cell, end_cell, level, density, vehicle_count.
         """
         segments = []
@@ -577,10 +617,9 @@ class TrafficEngine:
         for start_cell in range(0, lane.length, SEGMENT_SIZE):
             end_cell = min(start_cell + SEGMENT_SIZE, lane.length)
 
-            # Count vehicles in this segment
-            vehicles_in_segment = sum(
-                1 for pos in lane.pos if start_cell <= pos < end_cell
-            )
+            # Get vehicles in this segment
+            vehicles_in_segment_mask = (lane.pos >= start_cell) & (lane.pos < end_cell)
+            vehicles_in_segment = vehicles_in_segment_mask.sum()
 
             # Calculate density for this segment
             segment_length = end_cell - start_cell
@@ -588,13 +627,34 @@ class TrafficEngine:
                 vehicles_in_segment / segment_length if segment_length > 0 else 0.0
             )
 
-            # Determine congestion level based on density
-            if density < LIGHT_MAX:
-                level = "light"  # Green
-            elif density < MODERATE_MAX:
+            # Calculate average speed in this segment
+            if vehicles_in_segment > 0:
+                segment_speeds = lane.spd[vehicles_in_segment_mask]
+                avg_speed = segment_speeds.mean()
+
+                # Get max possible speed in this segment (check vehicle types)
+                segment_types = lane.vtype[vehicles_in_segment_mask]
+                max_possible_speed = self.vmax[segment_types].mean()
+
+                # Calculate speed ratio (0.0 = stopped, 1.0 = full speed)
+                speed_ratio = (
+                    avg_speed / max_possible_speed if max_possible_speed > 0 else 1.0
+                )
+            else:
+                avg_speed = 0
+                speed_ratio = 1.0  # No vehicles = no congestion
+
+            # Determine congestion level based on BOTH density AND speed
+            # If speed is very low, mark as congested even with low density
+            if density >= MODERATE_MAX or speed_ratio < 0.3:
+                # Heavy: high density OR very low speed (<30% of max)
+                level = "heavy"  # Red
+            elif density >= LIGHT_MAX or speed_ratio < 0.6:
+                # Moderate: medium density OR low speed (<60% of max)
                 level = "moderate"  # Orange
             else:
-                level = "heavy"  # Red
+                # Light: low density AND normal speed
+                level = "light"  # Green
 
             segments.append(
                 {
@@ -603,7 +663,8 @@ class TrafficEngine:
                     "end_cell": end_cell,
                     "level": level,
                     "density": round(density, 3),
-                    "vehicle_count": vehicles_in_segment,
+                    "vehicle_count": int(vehicles_in_segment),
+                    "avg_speed": round(float(avg_speed), 2),  # Added for debugging
                 }
             )
 
