@@ -2,6 +2,7 @@ import { Inter, JetBrains_Mono, Anton } from "next/font/google"
 
 import "./globals.css"
 import { cn } from "@/lib/utils"
+import { Metadata } from "next"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -15,6 +16,21 @@ const fontHeading = Anton({
   weight: "400",
   variable: "--font-heading",
 })
+
+export const metadata: Metadata = {
+  metadataBase: new URL("https://talasim.app"),
+  title: "TALA",
+  description:
+    "TALA is a cellular automata-based traffic simulation and signal timing optimization system for the Mindanao Avenue and Commonwealth Avenue crossing in Quezon City.",
+  keywords: [
+    "TALA",
+    "traffic signal timing",
+    "traffic simulation",
+    "cellular automata",
+    "Metro Manila",
+    "mixed traffic",
+  ],
+}
 
 export default function RootLayout({
   children,
