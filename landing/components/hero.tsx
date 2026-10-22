@@ -16,16 +16,16 @@ export function Hero() {
 
       <div className="relative mx-auto max-w-7xl p-4 md:p-6">
         <div className="flex max-w-xl flex-col items-center text-center lg:max-w-3xl">
-          <h2 className="text-[8rem] leading-none [text-shadow:8px_8px_0_#b8b3b0] md:text-[12rem] lg:text-[16rem] lg:[text-shadow:12px_12px_0_#b8b3b0]">
+          <h1 className="text-[8rem] leading-none [text-shadow:8px_8px_0_#b8b3b0] md:text-[12rem] lg:text-[16rem] lg:[text-shadow:12px_12px_0_#b8b3b0]">
             TALA
-          </h2>
+          </h1>
 
-          <h3 className="text-2xl md:text-3xl lg:text-5xl">
+          <p className="font-heading text-2xl md:text-3xl lg:text-5xl">
             <span className="text-green-500">T</span>RAFFIC{" "}
             <span className="text-yellow-400">A</span>NALYSIS and{" "}
             <span className="text-red-500">L</span>IGHT{" "}
             <span className="text-yellow-400">A</span>LLOCATION
-          </h3>
+          </p>
 
           <p className="mt-3 max-w-md text-base lg:max-w-xl lg:text-xl">
             A Cellular Automata-Based Traffic Simulation and Signal Timing
