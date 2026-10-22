@@ -1,5 +1,5 @@
 """
-Regenerate network.json with 2.5m cell size (paper specification).
+Regenerate network.json with 2.5m cell size.
 
 This script:
 1. Reads the current network.json (7.5m cells, 73 cells/lane)
@@ -107,12 +107,12 @@ def main() -> None:
             )
 
     # Write new network
-    print(f"\n💾 Writing new network to: {new_network_path}")
+    print(f"\nWriting new network to: {new_network_path}")
     with open(new_network_path, "w", encoding="utf-8") as f:
         json.dump(network, f, indent=2, ensure_ascii=False)
 
-    print(f"\n✅ Done! Processed {lanes_processed} lanes")
-    print("\n⚠️  NEXT STEPS:")
+    print(f"\nDone! Processed {lanes_processed} lanes")
+    print("\nNEXT STEPS:")
     print(f"1. Review {new_network_path} to verify coordinates look correct")
     print("2. Backup your current network.json")
     print("3. Replace network.json with network_2.5m.json")
