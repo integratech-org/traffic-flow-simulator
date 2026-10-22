@@ -1,4 +1,7 @@
+import { CtaFooter } from "@/components/cta-footer"
+import { Developers } from "@/components/developers"
 import { Hero } from "@/components/hero"
+import { HowItWorks } from "@/components/how-it-works"
 import Header from "@/components/shadcn-space/blocks/topbar-04/header"
 
 export default function Page() {
@@ -9,6 +12,9 @@ export default function Page() {
       {/* MAIN CONTENT */}
       <main>
         <Hero />
+        <HowItWorks />
+        <Developers />
+        <CtaFooter />
       </main>
     </div>
   )
