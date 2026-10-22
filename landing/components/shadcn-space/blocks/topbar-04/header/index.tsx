@@ -83,9 +83,9 @@ export default function Header() {
 
           <Link href="#" className="flex items-center gap-2">
             <Image src={Logo} alt="logo" className="mr-1 size-6" />
-            <h1 className="font-sans text-lg font-bold whitespace-nowrap">
+            <span className="font-sans text-lg font-bold whitespace-nowrap">
               TALA
-            </h1>
+            </span>
           </Link>
         </div>
 
@@ -94,7 +94,7 @@ export default function Header() {
           <NavigationMenu>
             <NavigationMenuList className="space-x-0">
               {(NavData as NavGroup[]).map((item) => {
-                if (item.type === "dropdown" && item.items) {
+                if (item.type === "dropdown") {
                   return (
                     <NavDropdown
                       key={item.label}
@@ -107,7 +107,13 @@ export default function Header() {
                 return (
                   <NavigationMenuItem key={item.label}>
                     <NavigationMenuLink
-                      render={<NavButton label={item.label} icon={item.icon} />}
+                      render={
+                        <NavButton
+                          label={item.label}
+                          icon={item.icon}
+                          href={item.href}
+                        />
+                      }
                     />
                   </NavigationMenuItem>
                 )

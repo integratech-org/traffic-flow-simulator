@@ -6,21 +6,20 @@ const NavData: NavGroup[] = [
     type: "link",
     label: "Home",
     icon: House,
-    href: "#",
+    href: "#hero",
   },
   {
     type: "link",
     label: "How it Works",
     icon: Workflow,
-    href: "#",
+    href: "#how-it-works",
   },
   {
     type: "link",
     label: "Developers",
     icon: CodeXml,
-    href: "#",
+    href: "#developers",
   },
 ]
 
 export default NavData
-
