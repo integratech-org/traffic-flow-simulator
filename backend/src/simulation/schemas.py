@@ -72,18 +72,28 @@ class VehicleParams(BaseModel):
     p_slow: float = Field(
         default=0.2, ge=0, le=1, description="Random slowdown probability"
     )
+    length_cells: int = Field(
+        default=1,
+        ge=1,
+        le=5,
+        description="Vehicle length in cells (paper: 1 for 2W, 2 for 4W)",
+    )
 
 
 def default_vehicle_params() -> dict[VehicleType, VehicleParams]:
-    """Default vehicle parameters with realistic urban traffic speeds.
+    """Default vehicle parameters aligned with paper specifications.
 
     Speed values are in meters/second (m/s):
-    - Car: 11 m/s ≈ 40 km/h (realistic urban average speed)
-    - Motorcycle: 14 m/s ≈ 50 km/h (motorcycles accelerate faster, weave through traffic)
+    - Car: 12 m/s ≈ 43 km/h (paper spec: 45 km/h, 5 cells/step @ 2.5m)
+    - Motorcycle: 15 m/s = 54 km/h (paper spec: 54 km/h, 6 cells/step @ 2.5m)
 
-    With 7.5m cells, these convert to:
-    - Car: ~1.5 cells/tick (with rounding becomes 1-2 cells/tick)
-    - Motorcycle: ~1.9 cells/tick (with rounding becomes 2 cells/tick)
+    With 2.5m cells (paper specification), these convert to:
+    - Car: 12/2.5 = 4.8 cells/tick (rounds to 5 cells/tick ≈ 45 km/h)
+    - Motorcycle: 15/2.5 = 6 cells/tick (exactly 6 cells/tick = 54 km/h)
+
+    Vehicle length (paper Section II-D):
+    - Car (4-wheeler): 2 cells × 2.5m = 5 meters
+    - Motorcycle (2-wheeler): 1 cell × 2.5m = 2.5 meters
 
     p_slow represents driver hesitation, reaction time, and cautious behavior:
     - Cars: 0.3 (30% chance of slowing per tick)
@@ -92,8 +102,8 @@ def default_vehicle_params() -> dict[VehicleType, VehicleParams]:
     Note: No minimum speed needed - NaSch naturally allows speed=0 (complete stops)
     """
     return {
-        VehicleType.CAR: VehicleParams(v_max=11, p_slow=0.3),
-        VehicleType.MOTORCYCLE: VehicleParams(v_max=14, p_slow=0.2),
+        VehicleType.CAR: VehicleParams(v_max=12, p_slow=0.3, length_cells=2),
+        VehicleType.MOTORCYCLE: VehicleParams(v_max=15, p_slow=0.2, length_cells=1),
     }
 
 
