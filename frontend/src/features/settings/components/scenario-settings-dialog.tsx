@@ -61,9 +61,9 @@ export function ScenarioSettingsDialog({
 
   // Map backend weather values to frontend display values
   const weatherDisplayMap: Record<string, string> = {
-    clear: "Sunny",
-    cloudy: "Cloudy",
-    rainy: "Rainy",
+    clear: "Clear",
+    light_rain: "Light Rain",
+    heavy_rain: "Heavy Rain",
   }
 
   const [settings, setSettings] = useState<ScenarioSettings>(() => {
@@ -74,7 +74,7 @@ export function ScenarioSettingsDialog({
         simConfig.day_of_week.slice(1),
       time: clock.time,
       timePeriod: clock.timePeriod,
-      weather: weatherDisplayMap[simConfig.weather_condition] || "Sunny",
+      weather: weatherDisplayMap[simConfig.weather_condition] || "Clear",
       scenario: "",
     }
   })
@@ -89,7 +89,7 @@ export function ScenarioSettingsDialog({
           simConfig.day_of_week.slice(1),
         time: clock.time,
         timePeriod: clock.timePeriod,
-        weather: weatherDisplayMap[simConfig.weather_condition] || "Sunny",
+        weather: weatherDisplayMap[simConfig.weather_condition] || "Clear",
         scenario: "",
       })
       // Clear errors when dialog opens
@@ -138,10 +138,10 @@ export function ScenarioSettingsDialog({
     }
 
     // Map frontend values to backend schema
-    const weatherMap: Record<string, "clear" | "cloudy" | "rainy"> = {
-      Sunny: "clear",
-      Cloudy: "cloudy",
-      Rainy: "rainy",
+    const weatherMap: Record<string, "clear" | "light_rain" | "heavy_rain"> = {
+      Clear: "clear",
+      "Light Rain": "light_rain",
+      "Heavy Rain": "heavy_rain",
     }
 
     patchConfig({
@@ -254,9 +254,9 @@ export function ScenarioSettingsDialog({
               sticky={true}
               alignItemWithTrigger={false}
             >
-              <SelectItem value="Sunny">Sunny</SelectItem>
-              <SelectItem value="Cloudy">Cloudy</SelectItem>
-              <SelectItem value="Rainy">Rainy</SelectItem>
+              <SelectItem value="Clear">Clear</SelectItem>
+              <SelectItem value="Light Rain">Light Rain</SelectItem>
+              <SelectItem value="Heavy Rain">Heavy Rain</SelectItem>
             </SelectContent>
           </Select>
         </div>

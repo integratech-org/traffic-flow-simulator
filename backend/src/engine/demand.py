@@ -30,8 +30,8 @@ DAY_VOLUME = {
 
 WEATHER_VOLUME = {
     WeatherCondition.CLEAR: 1.00,
-    WeatherCondition.CLOUDY: 0.92,
-    WeatherCondition.RAINY: 0.78,
+    WeatherCondition.LIGHT_RAIN: 0.92,
+    WeatherCondition.HEAVY_RAIN: 0.78,
 }
 
 # (start_minute inclusive, end_minute exclusive, multiplier)

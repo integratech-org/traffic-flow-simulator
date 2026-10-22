@@ -36,7 +36,9 @@ class DemandTests(unittest.TestCase):
             weather_condition=WeatherCondition.CLEAR,
             density_scenario=DensityScenario.MODERATE,
         )
-        rain = clear.model_copy(update={"weather_condition": WeatherCondition.RAINY})
+        rain = clear.model_copy(
+            update={"weather_condition": WeatherCondition.HEAVY_RAIN}
+        )
         self.assertGreater(spawn_rate(clear), spawn_rate(rain))
 
 
