@@ -8,6 +8,7 @@ import type {
 import "mapbox-gl/dist/mapbox-gl.css"
 import { useNetwork } from "@/features/map/hooks/use-network"
 import { MapControls } from "./map-controls"
+import { MapSearch } from "./map-search"
 import { MetricsSidebar } from "@/features/analytics/components/metrics-sidebar"
 import { TrafficLightDialog } from "@/features/traffic-lights/components/traffic-light-dialog"
 import { TrafficLightStatusPanel } from "@/features/traffic-lights/components/traffic-light-status-panel"
@@ -384,6 +385,18 @@ function MapboxContainer() {
     }
   }
 
+  const handleLocationSelect = (
+    lon: number,
+    lat: number,
+    _placeName: string
+  ) => {
+    mapRef.current?.flyTo({
+      center: [lon, lat],
+      zoom: 17,
+      duration: 2000,
+    })
+  }
+
   if (errors) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background">
@@ -418,6 +431,12 @@ function MapboxContainer() {
         isSettingsActive={isSettingsDialogOpen}
         isMetricsActive={isMetricsSidebarOpen}
         isSignalStatusActive={isSignalStatusOpen}
+        isSidebarOpen={isMetricsSidebarOpen}
+      />
+
+      {/* Search Box */}
+      <MapSearch
+        onLocationSelect={handleLocationSelect}
         isSidebarOpen={isMetricsSidebarOpen}
       />
 
@@ -589,10 +608,16 @@ function MapboxContainer() {
         })}
       </Map>
 
-      {/* Legend Button (Mapbox doesn't need ZoomControls - it has built-in zoom) */}
+      {/* Legend Button - Bottom Left (above Mapbox logo) */}
       <div
-        className={`absolute top-20 z-[1000] transition-all duration-300 ${isMetricsSidebarOpen ? "left-[400px]" : "left-4"}`}
+        className={`absolute bottom-12 z-1000 transition-all duration-300 ${isMetricsSidebarOpen ? "left-[400px]" : "left-4"}`}
       >
+        {showLegend && (
+          <div className="mb-2">
+            <MapLegend />
+          </div>
+        )}
+
         <button
           onClick={() => setShowLegend(!showLegend)}
           className={`flex size-10 items-center justify-center rounded-md shadow-lg transition-colors ${
@@ -604,12 +629,6 @@ function MapboxContainer() {
         >
           <Info className="size-5" />
         </button>
-
-        {showLegend && (
-          <div className="mt-2">
-            <MapLegend />
-          </div>
-        )}
       </div>
     </div>
   )
