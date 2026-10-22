@@ -21,7 +21,7 @@ CAR, MOTO = 0, 1
 TYPE_NAMES = {CAR: "car", MOTO: "motorcycle"}
 
 # TASK_SEGMENTED_CONGESTION: Segment size for granular congestion visualization
-SEGMENT_SIZE = 20  # cells (100m with 5m cell size) - detailed Google Maps-style
+SEGMENT_SIZE = 60  # cells (150m with 2.5m cell size) - detailed Google Maps-style
 
 TICK_SECONDS = 1.0  # 1 tick = 1 second of simulated time
 
@@ -35,22 +35,24 @@ LEG_SIGNAL = {
 }
 
 RAIN_EXTRA_P_SLOW = 0.10
-ACCIDENT_RADIUS_METERS = 150  # Accident affect zone (150 meters = ~20 cells)
-ACCIDENT_APPROACH_METERS = 300  # Early warning zone (300 meters = ~40 cells)
-ACCIDENT_SPEED_LIMIT = 1  # Max speed in accident zone (1 cell/tick = ~7.5 m/s)
-ACCIDENT_APPROACH_SPEED = 2  # Max speed approaching accident (2 cells/tick)
+ACCIDENT_RADIUS_METERS = 150  # Accident affect zone (150 meters = ~60 cells @ 2.5m)
+ACCIDENT_APPROACH_METERS = 300  # Early warning zone (300 meters = ~120 cells @ 2.5m)
+ACCIDENT_SPEED_LIMIT = 1  # Max speed in accident zone (1 cell/tick @ 2.5m = 2.5 m/s)
+ACCIDENT_APPROACH_SPEED = (
+    2  # Max speed approaching accident (2 cells/tick @ 2.5m = 5 m/s)
+)
 FREE = 10_000  # "nothing ahead"
-EXIT_GAP = 20  # cells a lead vehicle sees past the end of an exit lane
+EXIT_GAP = 60  # cells a lead vehicle sees past the end of an exit lane (60 cells @ 2.5m = 150m)
 LIGHT_MAX, MODERATE_MAX = 0.15, 0.35  # density thresholds for congestion level
 METERS_PER_DEGREE_LAT = (
     111320  # approximate meters per degree latitude (for distance calculation)
 )
 
-# TASK8: Lane-changing parameters (MOBIL model)
+# TASK8: Lane-changing parameters (MOBIL model) - adjusted for 2.5m cells
 P_CHANGE_CAR = 0.12  # Probability of attempting lane change per tick for cars (12%)
 P_CHANGE_MOTO = 0.20  # Motorcycles more aggressive (20%)
-MIN_GAP_AHEAD = 3  # Minimum safe gap ahead in target lane (3 cells)
-MIN_GAP_BEHIND = 2  # Minimum safe gap behind in target lane (2 cells)
+MIN_GAP_AHEAD = 9  # Minimum safe gap ahead in target lane (9 cells @ 2.5m = 22.5m)
+MIN_GAP_BEHIND = 6  # Minimum safe gap behind in target lane (6 cells @ 2.5m = 15m)
 ADVANTAGE_THRESHOLD = 1  # Minimum speed advantage to justify change (1 cell/tick)
 POLITENESS_CAR = 0.3  # Cars more polite (care about others)
 POLITENESS_MOTO = 0.1  # Motorcycles less polite (more aggressive)
@@ -592,8 +594,8 @@ class TrafficEngine:
     def _spawn(self) -> None:
         for lane in self.entry_lanes:
             # Only spawn if: random check passes AND (lane empty OR rear vehicle is far enough)
-            # Need at least 2 cells gap to spawn safely (1 cell for vehicle + 1 cell gap)
-            can_spawn = lane.n == 0 or lane.pos[0] >= 2
+            # Need at least 6 cells gap to spawn safely @ 2.5m cells (6 cells = 15m)
+            can_spawn = lane.n == 0 or lane.pos[0] >= 6
             if self.rng.random() < self.spawn_rate and can_spawn:
                 vt = MOTO if self.rng.random() < self.moto_share else CAR
                 lane.add([0], [0], [self.next_vid], [vt], [0])
