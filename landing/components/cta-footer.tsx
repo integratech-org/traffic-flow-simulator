@@ -1,7 +1,6 @@
 import Image from "next/image"
 import { Cta } from "./cta"
 import { Footer } from "./footer"
-import roadLandscape from "@/assets/road-landscape.svg"
 
 export function CtaFooter() {
   return (
@@ -10,8 +9,10 @@ export function CtaFooter() {
       className="relative flex min-h-dvh flex-col items-center overflow-hidden"
     >
       <Image
-        src={roadLandscape}
+        src="/illustrations/road-landscape.svg"
         alt=""
+        width={4320}
+        height={1266}
         className="pointer-events-none absolute inset-x-0 bottom-0 w-full select-none"
       />
 
