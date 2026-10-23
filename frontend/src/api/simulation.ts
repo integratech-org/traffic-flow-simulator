@@ -38,7 +38,7 @@ export interface CreateRunRequest {
     | "saturday"
     | "sunday"
   time: string // "HH:MM" 24h
-  weather_condition: "clear" | "cloudy" | "rainy"
+  weather_condition: "clear" | "light_rain" | "heavy_rain"
   density_scenario: CongestionLevel
   vehicle_mix: { two_wheeler_pct: number; four_wheeler_pct: number }
   vehicle_params: Record<VehicleType, VehicleParams>

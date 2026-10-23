@@ -16,8 +16,8 @@ class DayOfWeek(str, Enum):
 
 class WeatherCondition(str, Enum):
     CLEAR = "clear"
-    CLOUDY = "cloudy"
-    RAINY = "rainy"
+    LIGHT_RAIN = "light_rain"
+    HEAVY_RAIN = "heavy_rain"
 
 
 class DensityScenario(str, Enum):

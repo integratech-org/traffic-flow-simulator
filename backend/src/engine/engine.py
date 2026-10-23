@@ -176,7 +176,7 @@ class TrafficEngine:
         self.vmax = np.array(vmax, I64)
         extra = (
             RAIN_EXTRA_P_SLOW
-            if config.weather_condition == WeatherCondition.RAINY
+            if config.weather_condition == WeatherCondition.HEAVY_RAIN
             else 0.0
         )
         self.pslow = np.clip([car.p_slow + extra, moto.p_slow + extra], 0, 1)
