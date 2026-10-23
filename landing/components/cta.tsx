@@ -13,8 +13,8 @@ export function Cta() {
       />
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pt-16 md:px-6 md:pt-24">
-        <div className="max-w-xl text-center md:text-left">
-          <h2 className="text-5xl text-primary uppercase md:text-6xl lg:text-7xl">
+        <div className="mx-auto flex max-w-xl flex-col items-center text-center md:mx-0 md:items-start md:text-left">
+          <h2 className="text-5xl uppercase [text-shadow:4px_4px_0_rgba(0,0,0,0.4)] md:text-6xl lg:text-7xl">
             See the signals in action
           </h2>
 
