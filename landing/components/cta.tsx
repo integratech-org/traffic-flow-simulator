@@ -23,7 +23,18 @@ export function Cta() {
             traffic flow at the crossing.
           </p>
 
-          <Button size="lg" className="mt-8 h-14 rounded-full px-10 text-lg">
+          <Button
+            size="lg"
+            className="mt-8 h-14 rounded-full px-10 text-lg"
+            nativeButton={false}
+            render={
+              <a
+                href="https://app.talasim.app"
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            }
+          >
             Try the Simulation
           </Button>
         </div>

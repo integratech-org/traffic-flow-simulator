@@ -3,11 +3,14 @@ import { Button } from "./ui/button"
 import { Separator } from "./ui/separator"
 import Facebook from "@/assets/icons/facebook.svg"
 import GitHub from "@/assets/icons/github.svg"
+import { cva, VariantProps } from "class-variance-authority"
+import { cn } from "cn"
+import Logo from "@/assets/logo.svg"
 
 const siteLinks = [
-  { label: "Home", href: "#hero" },
-  { label: "How it Works", href: "#how-it-works" },
-  { label: "Developers", href: "#developers" },
+  { label: "Home", href: "/#hero" },
+  { label: "How it Works", href: "/#how-it-works" },
+  { label: "Developers", href: "/#developers" },
 ]
 
 const legalLinks = [
@@ -15,11 +18,44 @@ const legalLinks = [
   { label: "Terms and Condition", href: "/terms" },
 ]
 
-export function Footer() {
+const footerVariants = cva(
+  "relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-6 md:gap-3 md:px-6",
+  {
+    variants: {
+      variant: {
+        light: "text-primary-foreground",
+        dark: "text-foreground",
+      },
+    },
+    defaultVariants: {
+      variant: "light",
+    },
+  }
+)
+
+const footerLinkVariants = cva("text-sm font-medium", {
+  variants: {
+    variant: {
+      light: "text-primary-foreground/80 hover:text-primary-foreground",
+      dark: "text-foreground/80 hover:text-foreground",
+    },
+  },
+  defaultVariants: {
+    variant: "light",
+  },
+})
+
+type Props = React.ComponentProps<"footer"> &
+  VariantProps<typeof footerVariants>
+
+export function Footer({ variant = "light", className, ...props }: Props) {
   return (
-    <footer className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-6 text-primary-foreground md:gap-3 md:px-6">
+    <footer className={cn(footerVariants({ variant }), className)} {...props}>
       <div className="flex items-center justify-between">
-        <span className="text-2xl md:text-3xl">TALA</span>
+        <Link href="/" className="flex items-center gap-2 text-2xl md:text-3xl">
+          <Logo className="size-7 md:size-8" />
+          <span className="font-bold">TALA</span>
+        </Link>
 
         <div className="flex gap-3 md:gap-4">
           <Button
@@ -62,7 +98,7 @@ export function Footer() {
             <Link
               key={link.label}
               href={link.href}
-              className="text-sm font-medium text-primary-foreground/80 hover:text-primary-foreground"
+              className={footerLinkVariants({ variant })}
             >
               {link.label}
             </Link>
@@ -74,7 +110,7 @@ export function Footer() {
             <Link
               key={link.label}
               href={link.href}
-              className="text-sm font-medium text-primary-foreground/80 hover:text-primary-foreground"
+              className={footerLinkVariants({ variant })}
             >
               {link.label}
             </Link>

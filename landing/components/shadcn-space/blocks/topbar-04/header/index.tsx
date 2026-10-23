@@ -66,7 +66,7 @@ export default function Header() {
 
               <ScrollArea className="h-full">
                 <Link
-                  href="#"
+                  href="/"
                   className="sticky top-0 z-10 flex items-center gap-2 bg-background p-4"
                 >
                   <Logo className="size-6" />
@@ -80,7 +80,7 @@ export default function Header() {
             </SheetContent>
           </Sheet>
 
-          <Link href="#" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <Logo className="size-6" />
             <span className="font-sans text-lg font-bold whitespace-nowrap">
               TALA
@@ -123,7 +123,18 @@ export default function Header() {
 
         {/* RIGHT */}
         <div className="flex items-center gap-2">
-          <Button size="lg" className="rounded-full">
+          <Button
+            size="lg"
+            className="rounded-full"
+            nativeButton={false}
+            render={
+              <a
+                href="https://app.talasim.app"
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            }
+          >
             Simulation
           </Button>
         </div>
