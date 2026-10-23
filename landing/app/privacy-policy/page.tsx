@@ -509,7 +509,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <p className="mt-6 text-center text-muted-foreground">
               <strong>
-                By using Tala, you consent to this Privacy Policy.
+                By using TALA, you consent to this Privacy Policy.
               </strong>
             </p>
           </div>
