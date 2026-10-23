@@ -17,11 +17,11 @@ const legalLinks = [
 
 export function Footer() {
   return (
-    <footer className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 pb-6 text-primary-foreground md:px-6">
+    <footer className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-6 text-primary-foreground md:gap-3 md:px-6">
       <div className="flex items-center justify-between">
-        <span className="text-3xl">TALA</span>
+        <span className="text-2xl md:text-3xl">TALA</span>
 
-        <div className="flex gap-4">
+        <div className="flex gap-3 md:gap-4">
           <Button
             size="icon-sm"
             variant="secondary"
@@ -56,8 +56,8 @@ export function Footer() {
 
       <Separator />
 
-      <div className="flex justify-between">
-        <nav className="flex gap-8">
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <nav className="flex flex-wrap gap-x-6 gap-y-2 md:gap-x-8">
           {siteLinks.map((link) => (
             <Link
               key={link.label}
@@ -68,7 +68,8 @@ export function Footer() {
             </Link>
           ))}
         </nav>
-        <nav className="flex gap-6">
+
+        <nav className="flex flex-wrap gap-x-6 gap-y-2">
           {legalLinks.map((link) => (
             <Link
               key={link.label}
