@@ -24,7 +24,6 @@ import {
 import NavData from "@/components/shadcn-space/blocks/topbar-04/data"
 import { NavGroup } from "@/components/shadcn-space/blocks/topbar-04/types"
 import Logo from "@/assets/logo.svg"
-import Image from "next/image"
 import Link from "next/link"
 
 export default function Header() {
@@ -70,7 +69,7 @@ export default function Header() {
                   href="#"
                   className="sticky top-0 z-10 flex items-center gap-2 bg-background p-4"
                 >
-                  <Image src={Logo} alt="logo" className="mr-1 size-6" />
+                  <Logo className="size-6" />
                   <span className="text-lg font-bold whitespace-nowrap">
                     TALA
                   </span>
@@ -82,7 +81,7 @@ export default function Header() {
           </Sheet>
 
           <Link href="#" className="flex items-center gap-2">
-            <Image src={Logo} alt="logo" className="mr-1 size-6" />
+            <Logo className="size-6" />
             <span className="font-sans text-lg font-bold whitespace-nowrap">
               TALA
             </span>

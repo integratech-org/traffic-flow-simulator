@@ -1,4 +1,3 @@
-import Road from "@/assets/road.svg"
 import Image from "next/image"
 
 export function Hero() {
@@ -8,9 +7,11 @@ export function Hero() {
       className="relative flex min-h-[calc(100dvh-4rem)] scroll-mt-16 items-center overflow-hidden"
     >
       <Image
-        src={Road}
+        src="/illustrations/road.svg"
         alt=""
         priority
+        width={792}
+        height={894}
         className="pointer-events-none absolute right-0 bottom-0 hidden h-full w-auto max-w-none select-none md:block"
       />
 
