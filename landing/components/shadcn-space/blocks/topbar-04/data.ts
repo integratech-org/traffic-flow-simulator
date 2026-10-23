@@ -6,19 +6,19 @@ const NavData: NavGroup[] = [
     type: "link",
     label: "Home",
     icon: House,
-    href: "#hero",
+    href: "/#hero",
   },
   {
     type: "link",
     label: "How it Works",
     icon: Workflow,
-    href: "#how-it-works",
+    href: "/#how-it-works",
   },
   {
     type: "link",
     label: "Developers",
     icon: CodeXml,
-    href: "#developers",
+    href: "/#developers",
   },
 ]
 
