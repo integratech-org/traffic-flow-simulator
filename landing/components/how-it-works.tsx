@@ -26,11 +26,11 @@ export function HowItWorks() {
       id="how-it-works"
       className="flex min-h-[calc(100dvh-4rem)] scroll-mt-16 items-center overflow-hidden bg-[#3b3b3b] text-primary-foreground"
     >
-      <div className="mx-auto max-w-7xl p-4 text-center md:p-6">
-        <h2 className="text-5xl uppercase [text-shadow:4px_4px_0_rgba(0,0,0,0.4)] md:text-6xl lg:text-7xl">
+      <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
+        <h2 className="text-center text-5xl uppercase [text-shadow:4px_4px_0_rgba(0,0,0,0.4)] md:text-6xl lg:text-7xl">
           HOW IT WORKS
         </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-lg lg:text-xl">
+        <p className="mx-auto mt-3 max-w-2xl text-center text-lg lg:text-xl">
           Three simple steps from traffic data to better signal timing.
         </p>
 
