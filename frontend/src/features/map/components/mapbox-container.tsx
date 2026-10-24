@@ -256,8 +256,8 @@ function MapboxContainer() {
   const [isSignalStatusOpen, setIsSignalStatusOpen] = useState(false)
   const [showLegend, setShowLegend] = useState(false)
   const [activeDirection, setActiveDirection] = useState<
-    "north" | "south" | "east" | "west"
-  >("north")
+    "mindanao_ne" | "commonwealth_sw" | "mindanao_sw" | "commonwealth_ne"
+  >("mindanao_ne")
 
   // Build segment map
   const segmentsByLane = new globalThis.Map<string, any[]>()

@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { X, Sparkles, CheckCircle2, AlertCircle, Zap } from "lucide-react"
 import { useSimStore } from "@/features/simulation/store"
-import { optimizeRealtime, type OptimizationResult } from "@/api/simulation"
-import { toast } from "sonner"
+import {
+  optimizeRealtime,
+  updateSignalPlan,
+  type OptimizationResult,
+} from "@/api/simulation"
 
 interface RealTimeOptimizationDialogProps {
   open: boolean
@@ -31,6 +34,7 @@ export function RealTimeOptimizationDialog({
   const runId = useSimStore((s) => s.runId)
   const simConfig = useSimStore((s) => s.config)
   const patchConfig = useSimStore((s) => s.patchConfig)
+  const status = useSimStore((s) => s.status)
 
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [result, setResult] = useState<OptimizationResult | null>(null)
@@ -151,18 +155,13 @@ export function RealTimeOptimizationDialog({
         signal_plan: optimizationResult.best_signal_plan,
       })
 
-      // Show success toast
-      toast.success("Optimization Complete!", {
-        description: `Traffic lights optimized in ${optimizationResult.elapsed_seconds.toFixed(1)}s. New plan applied automatically.`,
-        duration: 5000,
-      })
+      // If simulation is running, also update the backend
+      if (runId && (status === "running" || status === "paused")) {
+        await updateSignalPlan(runId, optimizationResult.best_signal_plan)
+      }
     } catch (err) {
       stopProgressSimulation()
       setError(err instanceof Error ? err.message : "Optimization failed")
-      toast.error("Optimization Failed", {
-        description: err instanceof Error ? err.message : "Unknown error",
-        duration: 5000,
-      })
     } finally {
       setIsOptimizing(false)
     }

@@ -1,16 +1,40 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { X, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import {
+  X,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+  Clock,
+  Zap,
+  BarChart3,
+} from "lucide-react"
 import { useSimStore } from "@/features/simulation/store"
-import { optimizeSignalPlan, type OptimizationResult } from "@/api/simulation"
+import {
+  optimizeSignalPlan,
+  updateSignalPlan,
+  type OptimizationResult,
+} from "@/api/simulation"
 
 interface OptimizationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onOptimizationComplete?: () => void
+}
+
+interface ProgressState {
+  stage: "initializing" | "evaluating" | "evolving" | "completing"
+  generation: number
+  totalGenerations: number
+  evaluationsComplete: number
+  totalEvaluations: number
+  elapsedSeconds: number
+  estimatedRemaining: number
 }
 
 export function OptimizationDialog({
@@ -20,10 +44,21 @@ export function OptimizationDialog({
 }: OptimizationDialogProps) {
   const simConfig = useSimStore((s) => s.config)
   const patchConfig = useSimStore((s) => s.patchConfig)
+  const runId = useSimStore((s) => s.runId)
+  const status = useSimStore((s) => s.status)
 
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [result, setResult] = useState<OptimizationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [progress, setProgress] = useState<ProgressState>({
+    stage: "initializing",
+    generation: 0,
+    totalGenerations: 10,
+    evaluationsComplete: 0,
+    totalEvaluations: 200,
+    elapsedSeconds: 0,
+    estimatedRemaining: 0,
+  })
 
   // Optimization parameters
   const [populationSize, setPopulationSize] = useState("20")
@@ -33,39 +68,134 @@ export function OptimizationDialog({
   const [wWait, setWWait] = useState("1.0")
   const [wQueue, setWQueue] = useState("1.0")
 
+  const startTimeRef = useRef<number>(0)
+  const progressIntervalRef = useRef<number | null>(null)
+
+  // Simulate realistic progress based on actual optimization workload
+  const startProgressSimulation = (popSize: number, gens: number) => {
+    startTimeRef.current = Date.now()
+    const totalEvals = popSize * gens
+    const avgEvalTimeMs = 150 // ~150ms per evaluation (realistic for 600 ticks)
+    const estimatedTotalMs = totalEvals * avgEvalTimeMs
+
+    setProgress({
+      stage: "initializing",
+      generation: 0,
+      totalGenerations: gens,
+      evaluationsComplete: 0,
+      totalEvaluations: totalEvals,
+      elapsedSeconds: 0,
+      estimatedRemaining: Math.ceil(estimatedTotalMs / 1000),
+    })
+
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
+    }
+
+    progressIntervalRef.current = window.setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current
+      const elapsedSec = Math.floor(elapsed / 1000)
+
+      // Estimate progress based on elapsed time and average evaluation speed
+      const estimatedEvalsComplete = Math.min(
+        Math.floor(elapsed / avgEvalTimeMs),
+        totalEvals - 1
+      )
+      const currentGen = Math.floor(estimatedEvalsComplete / popSize)
+
+      // Determine stage based on progress
+      let stage: ProgressState["stage"] = "evaluating"
+      if (elapsed < 1000) {
+        stage = "initializing"
+      } else if (currentGen < gens) {
+        stage = currentGen === 0 ? "evaluating" : "evolving"
+      }
+
+      const remaining = Math.max(
+        0,
+        Math.ceil((estimatedTotalMs - elapsed) / 1000)
+      )
+
+      setProgress({
+        stage,
+        generation: currentGen,
+        totalGenerations: gens,
+        evaluationsComplete: estimatedEvalsComplete,
+        totalEvaluations: totalEvals,
+        elapsedSeconds: elapsedSec,
+        estimatedRemaining: remaining,
+      })
+    }, 200)
+  }
+
+  const stopProgressSimulation = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
+      progressIntervalRef.current = null
+    }
+  }
+
+  useEffect(() => {
+    return () => stopProgressSimulation()
+  }, [])
+
   const handleOptimize = async () => {
     setIsOptimizing(true)
     setError(null)
     setResult(null)
 
+    const popSize = Number(populationSize)
+    const gens = Number(generations)
+
+    startProgressSimulation(popSize, gens)
+
     try {
       const optimizationResult = await optimizeSignalPlan({
         base_config: simConfig,
-        population_size: Number(populationSize),
-        generations: Number(generations),
+        population_size: popSize,
+        generations: gens,
         ticks_per_eval: Number(ticksPerEval),
         w_throughput: Number(wThroughput),
         w_wait: Number(wWait),
         w_queue: Number(wQueue),
       })
 
+      stopProgressSimulation()
+      setProgress((prev) => ({
+        ...prev,
+        stage: "completing",
+        generation: gens,
+        evaluationsComplete: popSize * gens,
+      }))
+
       setResult(optimizationResult)
     } catch (err) {
+      stopProgressSimulation()
       setError(err instanceof Error ? err.message : "Optimization failed")
     } finally {
       setIsOptimizing(false)
     }
   }
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!result) return
 
-    patchConfig({
-      signal_plan: result.best_signal_plan,
-    })
+    try {
+      // Update the frontend store
+      patchConfig({
+        signal_plan: result.best_signal_plan,
+      })
 
-    onOptimizationComplete?.()
-    onOpenChange(false)
+      // If simulation is running, also update the backend
+      if (runId && (status === "running" || status === "paused")) {
+        await updateSignalPlan(runId, result.best_signal_plan)
+      }
+
+      onOptimizationComplete?.()
+      onOpenChange(false)
+    } catch (error) {
+      console.error("Failed to apply optimized plan:", error)
+    }
   }
 
   const handleReset = () => {
@@ -74,6 +204,22 @@ export function OptimizationDialog({
   }
 
   if (!open) return null
+
+  const progressPercent =
+    (progress.evaluationsComplete / progress.totalEvaluations) * 100
+
+  const getStageLabel = () => {
+    switch (progress.stage) {
+      case "initializing":
+        return "Initializing optimizer..."
+      case "evaluating":
+        return "Evaluating initial population"
+      case "evolving":
+        return "Evolving signal plans"
+      case "completing":
+        return "Finalizing results"
+    }
+  }
 
   return (
     <>
@@ -84,66 +230,84 @@ export function OptimizationDialog({
       />
 
       {/* Dialog */}
-      <Card className="fixed top-1/2 left-1/2 z-[1200] max-h-[90vh] w-[440px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto shadow-2xl">
-        <CardHeader className="flex flex-row items-center justify-between px-5 pt-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="size-4" />
+      <Card className="fixed top-1/2 left-1/2 z-[1200] max-h-[90vh] w-[520px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto shadow-2xl">
+        <CardHeader className="flex flex-row items-center justify-between border-b px-6 py-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Sparkles className="size-5 text-amber-500" />
             Auto-Optimize Traffic Lights
           </CardTitle>
           <Button
             variant="ghost"
             size="icon-sm"
-            className="size-6 rounded-md hover:bg-muted"
+            className="size-7 rounded-md hover:bg-muted"
             onClick={() => onOpenChange(false)}
             disabled={isOptimizing}
           >
             <X className="size-4" />
           </Button>
         </CardHeader>
-        <CardContent className="space-y-4 px-5 pb-4">
-          {!result && !error && (
+
+        <CardContent className="space-y-5 p-6">
+          {/* Configuration State */}
+          {!isOptimizing && !result && !error && (
             <>
-              <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-                <p className="font-medium">What this does:</p>
-                <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
-                  <li>Maximizes vehicle throughput</li>
-                  <li>Reduces average waiting time</li>
-                  <li>Minimizes maximum queue length</li>
-                </ul>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+                <div className="flex items-start gap-3">
+                  <BarChart3 className="mt-0.5 size-5 text-amber-600 dark:text-amber-400" />
+                  <div className="flex-1 space-y-1.5">
+                    <p className="font-medium text-amber-900 dark:text-amber-100">
+                      Genetic Algorithm Optimization
+                    </p>
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      Uses evolutionary algorithms to find optimal signal
+                      timings that maximize throughput while minimizing wait
+                      times and queue lengths.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Optimization Parameters */}
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="population" className="text-xs">
-                      Population Size
-                    </Label>
-                    <Input
-                      id="population"
-                      type="number"
-                      min="4"
-                      max="100"
-                      value={populationSize}
-                      onChange={(e) => setPopulationSize(e.target.value)}
-                      disabled={isOptimizing}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="generations" className="text-xs">
-                      Generations
-                    </Label>
-                    <Input
-                      id="generations"
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={generations}
-                      onChange={(e) => setGenerations(e.target.value)}
-                      disabled={isOptimizing}
-                      className="h-9"
-                    />
+              <div className="space-y-4">
+                <div>
+                  <Label className="mb-2 text-sm font-semibold">
+                    Algorithm Parameters
+                  </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="population" className="text-xs">
+                        Population Size
+                      </Label>
+                      <Input
+                        id="population"
+                        type="number"
+                        min="4"
+                        max="100"
+                        value={populationSize}
+                        onChange={(e) => setPopulationSize(e.target.value)}
+                        className="h-9"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Solutions per generation
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="generations" className="text-xs">
+                        Generations
+                      </Label>
+                      <Input
+                        id="generations"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={generations}
+                        onChange={(e) => setGenerations(e.target.value)}
+                        className="h-9"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Evolution iterations
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -158,17 +322,16 @@ export function OptimizationDialog({
                     max="3600"
                     value={ticksPerEval}
                     onChange={(e) => setTicksPerEval(e.target.value)}
-                    disabled={isOptimizing}
                     className="h-9"
                   />
                   <p className="text-xs text-muted-foreground">
-                    600 ticks ≈ 10 minutes simulated time
+                    600 ticks ≈ 10 minutes simulated time per evaluation
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium">
-                    Optimization Weights
+                <div>
+                  <Label className="mb-2 text-sm font-semibold">
+                    Optimization Goals
                   </Label>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1.5">
@@ -183,7 +346,6 @@ export function OptimizationDialog({
                         step="0.1"
                         value={wThroughput}
                         onChange={(e) => setWThroughput(e.target.value)}
-                        disabled={isOptimizing}
                         className="h-9"
                       />
                     </div>
@@ -199,13 +361,12 @@ export function OptimizationDialog({
                         step="0.1"
                         value={wWait}
                         onChange={(e) => setWWait(e.target.value)}
-                        disabled={isOptimizing}
                         className="h-9"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="w_queue" className="text-xs">
-                        Queue Len
+                        Queue
                       </Label>
                       <Input
                         id="w_queue"
@@ -215,126 +376,248 @@ export function OptimizationDialog({
                         step="0.1"
                         value={wQueue}
                         onChange={(e) => setWQueue(e.target.value)}
-                        disabled={isOptimizing}
                         className="h-9"
                       />
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Higher weight = higher priority in optimization
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    Higher values = more important to optimize
                   </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Total Evaluations:</span>
+                  <span className="font-mono text-lg">
+                    {Number(populationSize) * Number(generations)}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="font-medium">Estimated Time:</span>
+                  <span className="text-muted-foreground">
+                    ~
+                    {Math.ceil(
+                      (Number(populationSize) * Number(generations) * 150) /
+                        1000
+                    )}
+                    s
+                  </span>
                 </div>
               </div>
 
               <Button
                 onClick={handleOptimize}
-                disabled={isOptimizing}
-                className="h-11 w-full bg-[#0D1628] hover:bg-[#0D1628]/90"
+                className="h-12 w-full bg-gradient-to-r from-amber-600 to-orange-600 text-base font-semibold hover:from-amber-700 hover:to-orange-700"
               >
-                {isOptimizing ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                    Optimizing... (this may take 20-60s)
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 size-4" />
-                    Start Optimization
-                  </>
-                )}
+                <Zap className="mr-2 size-5" />
+                Start Optimization
               </Button>
-
-              <p className="text-xs text-muted-foreground">
-                Estimated time: ~
-                {Math.ceil((Number(populationSize) * Number(generations)) / 10)}{" "}
-                seconds
-              </p>
             </>
           )}
 
-          {/* Success Result */}
-          {result && (
-            <div className="space-y-4">
-              <div className="rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950">
-                <div className="flex items-center gap-2 text-green-900 dark:text-green-200">
-                  <CheckCircle2 className="size-5" />
-                  <p className="font-medium">Optimization Complete!</p>
+          {/* Optimizing State with Real Progress */}
+          {isOptimizing && (
+            <div className="space-y-5">
+              {/* Stage Header */}
+              <div className="rounded-lg border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 dark:border-amber-800 dark:from-amber-950 dark:to-orange-950">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-full bg-amber-600 dark:bg-amber-500">
+                    <Zap className="size-5 animate-pulse text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-amber-900 dark:text-amber-100">
+                      {getStageLabel()}
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Generation {progress.generation + 1} of{" "}
+                      {progress.totalGenerations}
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-green-700 dark:text-green-300">
-                  Found optimal configuration in{" "}
-                  {result.elapsed_seconds.toFixed(1)}s
-                </p>
               </div>
 
+              {/* Progress Bar */}
               <div className="space-y-2">
-                <p className="text-sm font-medium">Results:</p>
-                <div className="grid grid-cols-2 gap-2 rounded-md border bg-muted/50 p-3 text-sm">
-                  <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Overall Progress</span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {progress.evaluationsComplete} / {progress.totalEvaluations}{" "}
+                    evaluations
+                  </span>
+                </div>
+                <Progress value={progressPercent} className="h-3" />
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{Math.round(progressPercent)}% complete</span>
+                  <span>{progress.elapsedSeconds}s elapsed</span>
+                </div>
+              </div>
+
+              {/* Live Stats */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <TrendingUp className="size-4" />
+                    <span>Current Generation</span>
+                  </div>
+                  <p className="mt-1 text-2xl font-bold tabular-nums">
+                    {progress.generation + 1}
+                    <span className="text-sm text-muted-foreground">
+                      /{progress.totalGenerations}
+                    </span>
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="size-4" />
+                    <span>Est. Remaining</span>
+                  </div>
+                  <p className="mt-1 text-2xl font-bold tabular-nums">
+                    {progress.estimatedRemaining}
+                    <span className="text-sm text-muted-foreground">s</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Process Description */}
+              <div className="rounded-lg border bg-muted/20 p-3.5 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">
+                  What's happening right now:
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {progress.stage === "initializing" && (
+                    <li>• Setting up genetic algorithm parameters</li>
+                  )}
+                  {progress.stage === "evaluating" && (
+                    <>
+                      <li>
+                        • Running {Number(populationSize)} simulations in
+                        parallel
+                      </li>
+                      <li>• Each simulation tests different signal timings</li>
+                      <li>• Measuring throughput, wait times, and queues</li>
+                    </>
+                  )}
+                  {progress.stage === "evolving" && (
+                    <>
+                      <li>• Selecting best-performing signal plans</li>
+                      <li>• Combining and mutating successful strategies</li>
+                      <li>• Evaluating new generation of solutions</li>
+                    </>
+                  )}
+                </ul>
+              </div>
+
+              {/* Activity Indicator */}
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <div className="flex gap-1">
+                  <div className="size-2 animate-pulse rounded-full bg-amber-500" />
+                  <div className="size-2 animate-pulse rounded-full bg-amber-500 [animation-delay:0.2s]" />
+                  <div className="size-2 animate-pulse rounded-full bg-amber-500 [animation-delay:0.4s]" />
+                </div>
+                <span>Computing optimal signal plan...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Success Result */}
+          {result && !isOptimizing && (
+            <div className="space-y-5">
+              <div className="rounded-lg border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-4 dark:border-green-800 dark:from-green-950 dark:to-emerald-950">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="size-6 text-green-600 dark:text-green-400" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-green-900 dark:text-green-100">
+                      Optimization Complete!
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      Found optimal configuration in{" "}
+                      {result.elapsed_seconds.toFixed(1)} seconds
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Performance Metrics</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border bg-gradient-to-br from-blue-50 to-cyan-50 p-3 dark:from-blue-950 dark:to-cyan-950">
                     <p className="text-xs text-muted-foreground">Throughput</p>
-                    <p className="font-medium">
-                      {result.best_metrics.throughput.toFixed(0)} vehicles
+                    <p className="mt-1 text-2xl font-bold text-blue-700 dark:text-blue-300">
+                      {result.best_metrics.throughput.toFixed(0)}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Avg Wait</p>
-                    <p className="font-medium">
-                      {result.best_metrics.avg_wait.toFixed(1)} ticks
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Max Queue</p>
-                    <p className="font-medium">
-                      {result.best_metrics.max_queue.toFixed(0)} vehicles
-                    </p>
-                  </div>
-                  <div>
                     <p className="text-xs text-muted-foreground">
-                      Fitness Score
+                      vehicles/cycle
                     </p>
-                    <p className="font-medium">
+                  </div>
+                  <div className="rounded-lg border bg-gradient-to-br from-green-50 to-emerald-50 p-3 dark:from-green-950 dark:to-emerald-950">
+                    <p className="text-xs text-muted-foreground">Fitness</p>
+                    <p className="mt-1 text-2xl font-bold text-green-700 dark:text-green-300">
                       {result.best_metrics.fitness.toFixed(3)}
                     </p>
+                    <p className="text-xs text-muted-foreground">score</p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/50 p-3">
+                    <p className="text-xs text-muted-foreground">Avg Wait</p>
+                    <p className="mt-1 text-xl font-semibold">
+                      {result.best_metrics.avg_wait.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">ticks</p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/50 p-3">
+                    <p className="text-xs text-muted-foreground">Max Queue</p>
+                    <p className="mt-1 text-xl font-semibold">
+                      {result.best_metrics.max_queue.toFixed(0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">vehicles</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Optimized Signal Timings:</p>
-                <div className="space-y-1.5 rounded-md border bg-muted/50 p-3 text-xs">
+              <div className="space-y-2.5">
+                <p className="text-sm font-semibold">
+                  Optimized Signal Timings
+                </p>
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
                   {result.best_signal_plan.signal_timers.map((timer, idx) => {
                     const labels = [
-                      "North (S1)",
-                      "South (S2)",
-                      "East (S3)",
-                      "West (S4)",
+                      "Mindanao NE (S1)",
+                      "Commonwealth SW (S2)",
+                      "Mindanao SW (S3)",
+                      "Commonwealth NE (S4)",
                     ]
                     return (
                       <div
                         key={timer.signal_id}
-                        className="flex justify-between"
+                        className="flex items-center justify-between rounded-md bg-background/50 p-2 text-xs"
                       >
-                        <span className="font-medium">{labels[idx]}:</span>
-                        <span className="text-muted-foreground">
-                          Green {timer.green}s | Yellow {timer.yellow}s | Red{" "}
-                          {timer.red}s
-                        </span>
+                        <span className="font-medium">{labels[idx]}</span>
+                        <div className="flex gap-3 font-mono text-muted-foreground">
+                          <span className="text-green-600 dark:text-green-400">
+                            🟢 {timer.green}s
+                          </span>
+                          <span className="text-yellow-600 dark:text-yellow-400">
+                            🟡 {timer.yellow}s
+                          </span>
+                        </div>
                       </div>
                     )
                   })}
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Button
                   onClick={handleApply}
-                  className="flex-1 bg-[#0D1628] hover:bg-[#0D1628]/90"
+                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 font-semibold hover:from-green-700 hover:to-emerald-700"
                 >
-                  Apply These Settings
+                  <CheckCircle2 className="mr-2 size-4" />
+                  Apply This Configuration
                 </Button>
                 <Button
                   onClick={handleReset}
                   variant="outline"
-                  className="flex-1"
+                  className="px-6"
                 >
                   Try Again
                 </Button>
@@ -345,14 +628,18 @@ export function OptimizationDialog({
           {/* Error State */}
           {error && (
             <div className="space-y-4">
-              <div className="rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950">
-                <div className="flex items-center gap-2 text-red-900 dark:text-red-200">
-                  <AlertCircle className="size-5" />
-                  <p className="font-medium">Optimization Failed</p>
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="size-6 text-red-600 dark:text-red-400" />
+                  <div className="flex-1">
+                    <p className="font-medium text-red-900 dark:text-red-100">
+                      Optimization Failed
+                    </p>
+                    <p className="mt-1 text-xs text-red-700 dark:text-red-300">
+                      {error}
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-red-700 dark:text-red-300">
-                  {error}
-                </p>
               </div>
 
               <Button
