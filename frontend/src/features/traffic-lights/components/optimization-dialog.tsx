@@ -68,6 +68,16 @@ export function OptimizationDialog({
   const [wWait, setWWait] = useState("1.0")
   const [wQueue, setWQueue] = useState("1.0")
 
+  // Scenario configuration (editable)
+  const [dayOfWeek, setDayOfWeek] = useState(simConfig.day_of_week)
+  const [timeOfDay, setTimeOfDay] = useState(simConfig.time)
+  const [weatherCondition, setWeatherCondition] = useState(
+    simConfig.weather_condition
+  )
+  const [densityScenario, setDensityScenario] = useState(
+    simConfig.density_scenario
+  )
+
   const startTimeRef = useRef<number>(0)
   const progressIntervalRef = useRef<number | null>(null)
 
@@ -151,7 +161,13 @@ export function OptimizationDialog({
 
     try {
       const optimizationResult = await optimizeSignalPlan({
-        base_config: simConfig,
+        base_config: {
+          ...simConfig,
+          day_of_week: dayOfWeek,
+          time: timeOfDay,
+          weather_condition: weatherCondition,
+          density_scenario: densityScenario,
+        },
         population_size: popSize,
         generations: gens,
         ticks_per_eval: Number(ticksPerEval),
@@ -251,6 +267,105 @@ export function OptimizationDialog({
           {/* Configuration State */}
           {!isOptimizing && !result && !error && (
             <>
+              {/* Scenario Configuration - Now Editable */}
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+                <div className="mb-3 flex items-start gap-3">
+                  <Clock className="mt-0.5 size-5 text-blue-600 dark:text-blue-400" />
+                  <div className="flex-1">
+                    <p className="font-medium text-blue-900 dark:text-blue-100">
+                      Optimization Scenario
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      Configure the traffic conditions to optimize for
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Day of Week */}
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="day_of_week"
+                      className="text-xs font-medium"
+                    >
+                      Day of Week
+                    </Label>
+                    <select
+                      id="day_of_week"
+                      value={dayOfWeek}
+                      onChange={(e) => setDayOfWeek(e.target.value as any)}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                      <option value="monday">Monday</option>
+                      <option value="tuesday">Tuesday</option>
+                      <option value="wednesday">Wednesday</option>
+                      <option value="thursday">Thursday</option>
+                      <option value="friday">Friday</option>
+                      <option value="saturday">Saturday</option>
+                      <option value="sunday">Sunday</option>
+                    </select>
+                  </div>
+
+                  {/* Time and Weather Row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Time of Day */}
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="time_of_day"
+                        className="text-xs font-medium"
+                      >
+                        Time of Day
+                      </Label>
+                      <Input
+                        id="time_of_day"
+                        type="time"
+                        value={timeOfDay}
+                        onChange={(e) => setTimeOfDay(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+
+                    {/* Weather Condition */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="weather" className="text-xs font-medium">
+                        Weather
+                      </Label>
+                      <select
+                        id="weather"
+                        value={weatherCondition}
+                        onChange={(e) =>
+                          setWeatherCondition(e.target.value as any)
+                        }
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                      >
+                        <option value="clear">Clear</option>
+                        <option value="light_rain">Light Rain</option>
+                        <option value="heavy_rain">Heavy Rain</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Density Scenario */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="density" className="text-xs font-medium">
+                      Traffic Density
+                    </Label>
+                    <select
+                      id="density"
+                      value={densityScenario}
+                      onChange={(e) =>
+                        setDensityScenario(e.target.value as any)
+                      }
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                      <option value="light">Light</option>
+                      <option value="moderate">Moderate</option>
+                      <option value="heavy">Heavy</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
                 <div className="flex items-start gap-3">
                   <BarChart3 className="mt-0.5 size-5 text-amber-600 dark:text-amber-400" />
