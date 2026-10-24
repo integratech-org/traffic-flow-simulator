@@ -1,5 +1,6 @@
 import unittest
 
+from src.network.schemas import Network
 from src.network.service import load_network_data
 from src.simulation.schemas import CreateRunRequest, SignalPlan, SignalTimer
 from src.simulation.service import create_run, update_signal_plan
@@ -8,10 +9,15 @@ from src.simulation.service import create_run, update_signal_plan
 class UpdateSignalPlanTests(unittest.TestCase):
     """Tests for update_signal_plan function."""
 
+    network: Network  # Type annotation for class attribute
+
     @classmethod
     def setUpClass(cls) -> None:
         """Load network once for all tests."""
-        cls.network = load_network_data()
+        network = load_network_data()
+        if network is None:
+            raise RuntimeError("Failed to load network data")
+        cls.network = network
 
     def test_update_signal_plan_updates_config(self) -> None:
         """update_signal_plan should update run.config.signal_plan."""
@@ -54,10 +60,14 @@ class UpdateSignalPlanTests(unittest.TestCase):
 
         # Verify engine's signal controller was updated
         self.assertIsNotNone(updated_run.engine)
-        # In sequential mode, verify the phase schedule was built correctly
-        self.assertIn("S1", updated_run.engine.signals.phase_schedule)
-        self.assertIn("S2", updated_run.engine.signals.phase_schedule)
-        self.assertEqual(updated_run.engine.signals.signal_timings["S1"], (60, 6, 40))
+        # Type narrowing for mypy
+        if updated_run.engine is not None:
+            # In sequential mode, verify the phase schedule was built correctly
+            self.assertIn("S1", updated_run.engine.signals.phase_schedule)
+            self.assertIn("S2", updated_run.engine.signals.phase_schedule)
+            self.assertEqual(
+                updated_run.engine.signals.signal_timings["S1"], (60, 6, 40)
+            )
 
     def test_update_signal_plan_before_start(self) -> None:
         """update_signal_plan should work even if engine is not initialized yet."""
