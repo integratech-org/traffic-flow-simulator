@@ -9,29 +9,25 @@ class Phase(str, Enum):
     red = "red"
 
 
-# Real-world intersection configuration:
-# Opposing pairs can be green simultaneously (safe)
-# Conflicting directions must never be green together
-SIGNAL_GROUPS = {
-    "mindanao": ["S1", "S3"],  # Mindanao SW and NE (opposing pair)
-    "commonwealth": ["S2", "S4"],  # Commonwealth SW and NE (opposing pair)
-}
+# Sequential signal order: one direction at a time
+# S1 (North) → S2 (South) → S3 (East) → S4 (West) → repeat
+SIGNAL_ORDER = ["S1", "S2", "S3", "S4"]
 
 # All-red clearance time between phases (safety buffer)
 ALL_RED_CLEARANCE = 3  # seconds
 
 
 class SignalController:
-    """Real-world 4-way intersection signal controller.
+    """Sequential 4-way intersection signal controller.
 
-    Coordinates signals so opposing pairs (e.g., North-South) can be green together,
-    but conflicting directions (e.g., North-South vs East-West) are never both green.
+    Only ONE direction can be green at a time (one-at-a-time sequential control).
+    Each signal gets its turn: green → yellow → all-red clearance → next signal's turn.
 
     Cycle structure:
-    1. Mindanao pair (S1+S3): GREEN → YELLOW → RED
-    2. All-red clearance (3 seconds)
-    3. Commonwealth pair (S2+S4): GREEN → YELLOW → RED
-    4. All-red clearance (3 seconds)
+    1. S1 (North): GREEN → YELLOW → RED (+ clearance)
+    2. S2 (South): GREEN → YELLOW → RED (+ clearance)
+    3. S3 (East): GREEN → YELLOW → RED (+ clearance)
+    4. S4 (West): GREEN → YELLOW → RED (+ clearance)
     5. Repeat
     """
 
@@ -39,73 +35,66 @@ class SignalController:
         self.set_plan(plan)
 
     def set_plan(self, plan: SignalPlan) -> None:
-        """Configure signal timings with opposing-pair coordination.
+        """Configure signal timings for sequential one-at-a-time operation.
 
-        For a 4-way intersection, we use 2 signal groups (opposing pairs).
-        Each group cycles: green → yellow → all-red → (other group's turn)
+        Each signal gets its own time slot in sequence. Only one signal
+        can be green at any given time.
         """
-        # Extract timings from first signal (assume all have same durations)
-        # In real implementation, could average or use per-group timings
-        sample_timer = plan.signal_timers[0]
-        self.green_duration = sample_timer.green
-        self.yellow_duration = sample_timer.yellow
+        # Create a map of signal_id → timings
+        self.signal_timings: dict[str, tuple[int, int, int]] = {}
+        for timer in plan.signal_timers:
+            self.signal_timings[timer.signal_id] = (
+                timer.green,
+                timer.yellow,
+                timer.red,  # Not used in sequential mode, but stored for reference
+            )
 
-        # Calculate cycle length for one complete rotation
-        # Phase 1: Mindanao green+yellow
-        # Phase 2: All-red clearance
-        # Phase 3: Commonwealth green+yellow
-        # Phase 4: All-red clearance
-        phase_duration = self.green_duration + self.yellow_duration
-        self.cycle_length = 2 * (phase_duration + ALL_RED_CLEARANCE)
+        # For cycle calculation, use the timings from each signal
+        # Calculate when each signal's phase starts
+        self.phase_schedule: dict[str, dict[str, int]] = {}
+        current_time = 0
 
-        # Store which signals belong to which group
-        self.signal_to_group: dict[str, str] = {}
-        for group_name, signal_ids in SIGNAL_GROUPS.items():
-            for signal_id in signal_ids:
-                self.signal_to_group[signal_id] = group_name
+        for signal_id in SIGNAL_ORDER:
+            green, yellow, _ = self.signal_timings.get(
+                signal_id, (30, 5, 30)
+            )  # default fallback
 
-        # Phase start times within cycle
-        self.phase_schedule = {
-            "mindanao": {
-                "green_start": 0,
-                "yellow_start": self.green_duration,
-                "red_start": self.green_duration + self.yellow_duration,
-                "red_end": phase_duration + ALL_RED_CLEARANCE,
-            },
-            "commonwealth": {
-                "green_start": phase_duration + ALL_RED_CLEARANCE,
-                "yellow_start": phase_duration
-                + ALL_RED_CLEARANCE
-                + self.green_duration,
-                "red_start": phase_duration
-                + ALL_RED_CLEARANCE
-                + self.green_duration
-                + self.yellow_duration,
-                "red_end": self.cycle_length,
-            },
-        }
+            self.phase_schedule[signal_id] = {
+                "green_start": current_time,
+                "yellow_start": current_time + green,
+                "red_start": current_time + green + yellow,
+                "phase_end": current_time + green + yellow + ALL_RED_CLEARANCE,
+            }
+
+            current_time += green + yellow + ALL_RED_CLEARANCE
+
+        # Total cycle length is sum of all signal phases plus clearances
+        self.cycle_length = current_time
 
     def _get_cycle_position(self, tick: int) -> int:
         """Get position within the signal cycle (0 to cycle_length-1)."""
         return tick % self.cycle_length
 
     def phase(self, signal_id: str, tick: int) -> Phase:
-        """Determine current phase for a signal based on its group."""
-        group = self.signal_to_group.get(signal_id)
-        if not group:
+        """Determine current phase for a signal.
+
+        Only the signal whose time slot it is can be green or yellow.
+        All other signals are red.
+        """
+        if signal_id not in self.phase_schedule:
             # Fallback for unknown signals
             return Phase.red
 
-        schedule = self.phase_schedule[group]
+        schedule = self.phase_schedule[signal_id]
         t = self._get_cycle_position(tick)
 
-        # Check which phase we're in for this group
+        # Check which phase this specific signal is in
         if schedule["green_start"] <= t < schedule["yellow_start"]:
             return Phase.green
         elif schedule["yellow_start"] <= t < schedule["red_start"]:
             return Phase.yellow
         else:
-            # Everything else is red (including all-red clearance and other group's turn)
+            # All other times, this signal is red
             return Phase.red
 
     def can_pass(self, signal_id: str, tick: int) -> bool:
@@ -114,11 +103,10 @@ class SignalController:
 
     def seconds_remaining(self, signal_id: str, tick: int) -> int:
         """Calculate seconds remaining in current phase."""
-        group = self.signal_to_group.get(signal_id)
-        if not group:
+        if signal_id not in self.phase_schedule:
             return 0
 
-        schedule = self.phase_schedule[group]
+        schedule = self.phase_schedule[signal_id]
         t = self._get_cycle_position(tick)
 
         # Determine current phase and calculate remaining time
@@ -129,10 +117,10 @@ class SignalController:
             # In yellow phase
             return schedule["red_start"] - t
         else:
-            # In red phase - return time until next green
+            # In red phase - calculate time until next green
             if t < schedule["green_start"]:
-                # Before this group's green in current cycle
+                # Before this signal's turn in current cycle
                 return schedule["green_start"] - t
             else:
-                # After this group's turn, wait for next cycle
+                # After this signal's turn, wait for next cycle
                 return self.cycle_length - t + schedule["green_start"]

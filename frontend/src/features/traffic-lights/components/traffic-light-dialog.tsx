@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { X, Sparkles } from "lucide-react"
 import { useSimStore } from "@/features/simulation/store"
 import { OptimizationDialog } from "./optimization-dialog"
+import { updateSignalPlan } from "@/api/simulation"
 
 interface TrafficLightTiming {
   green: string
@@ -15,10 +16,10 @@ interface TrafficLightTiming {
 }
 
 interface TrafficLightConfig {
-  north: TrafficLightTiming
-  south: TrafficLightTiming
-  west: TrafficLightTiming
-  east: TrafficLightTiming
+  mindanao_ne: TrafficLightTiming
+  commonwealth_sw: TrafficLightTiming
+  mindanao_sw: TrafficLightTiming
+  commonwealth_ne: TrafficLightTiming
 }
 
 interface TrafficLightDialogProps {
@@ -31,14 +32,19 @@ interface TrafficLightDialogProps {
 export function TrafficLightDialog({
   open,
   onOpenChange,
-  activeDirection = "north",
+  activeDirection = "mindanao_ne",
   onDirectionChange,
 }: TrafficLightDialogProps) {
   const simConfig = useSimStore((s) => s.config)
   const patchConfig = useSimStore((s) => s.patchConfig)
+  const runId = useSimStore((s) => s.runId)
+  const status = useSimStore((s) => s.status)
 
   // Validation errors state
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Saving state
+  const [isSaving, setIsSaving] = useState(false)
 
   // Optimization dialog state
   const [isOptimizationOpen, setIsOptimizationOpen] = useState(false)
@@ -47,22 +53,22 @@ export function TrafficLightDialog({
   const [config, setConfig] = useState<TrafficLightConfig>(() => {
     const signalTimers = simConfig.signal_plan.signal_timers
     return {
-      north: {
+      mindanao_ne: {
         green: String(signalTimers[0]?.green ?? 30),
         yellow: String(signalTimers[0]?.yellow ?? 5),
         red: String(signalTimers[0]?.red ?? 30),
       },
-      south: {
+      commonwealth_sw: {
         green: String(signalTimers[1]?.green ?? 30),
         yellow: String(signalTimers[1]?.yellow ?? 5),
         red: String(signalTimers[1]?.red ?? 30),
       },
-      east: {
+      mindanao_sw: {
         green: String(signalTimers[2]?.green ?? 30),
         yellow: String(signalTimers[2]?.yellow ?? 5),
         red: String(signalTimers[2]?.red ?? 30),
       },
-      west: {
+      commonwealth_ne: {
         green: String(signalTimers[3]?.green ?? 30),
         yellow: String(signalTimers[3]?.yellow ?? 5),
         red: String(signalTimers[3]?.red ?? 30),
@@ -75,22 +81,22 @@ export function TrafficLightDialog({
     if (open) {
       const signalTimers = simConfig.signal_plan.signal_timers
       setConfig({
-        north: {
+        mindanao_ne: {
           green: String(signalTimers[0]?.green ?? 30),
           yellow: String(signalTimers[0]?.yellow ?? 5),
           red: String(signalTimers[0]?.red ?? 30),
         },
-        south: {
+        commonwealth_sw: {
           green: String(signalTimers[1]?.green ?? 30),
           yellow: String(signalTimers[1]?.yellow ?? 5),
           red: String(signalTimers[1]?.red ?? 30),
         },
-        east: {
+        mindanao_sw: {
           green: String(signalTimers[2]?.green ?? 30),
           yellow: String(signalTimers[2]?.yellow ?? 5),
           red: String(signalTimers[2]?.red ?? 30),
         },
-        west: {
+        commonwealth_ne: {
           green: String(signalTimers[3]?.green ?? 30),
           yellow: String(signalTimers[3]?.yellow ?? 5),
           red: String(signalTimers[3]?.red ?? 30),
@@ -133,10 +139,10 @@ export function TrafficLightDialog({
   const validateConfig = (): boolean => {
     const newErrors: Record<string, string> = {}
     const directions: Array<keyof TrafficLightConfig> = [
-      "north",
-      "south",
-      "east",
-      "west",
+      "mindanao_ne",
+      "commonwealth_sw",
+      "mindanao_sw",
+      "commonwealth_ne",
     ]
 
     directions.forEach((direction) => {
@@ -177,43 +183,58 @@ export function TrafficLightDialog({
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateConfig()) {
       return
     }
 
-    // Map directions to signal IDs: S1=North, S2=South, S3=East, S4=West
-    patchConfig({
-      signal_plan: {
-        signal_timers: [
-          {
-            signal_id: "S1",
-            green: Number(config.north.green),
-            yellow: Number(config.north.yellow),
-            red: Number(config.north.red),
-          },
-          {
-            signal_id: "S2",
-            green: Number(config.south.green),
-            yellow: Number(config.south.yellow),
-            red: Number(config.south.red),
-          },
-          {
-            signal_id: "S3",
-            green: Number(config.east.green),
-            yellow: Number(config.east.yellow),
-            red: Number(config.east.red),
-          },
-          {
-            signal_id: "S4",
-            green: Number(config.west.green),
-            yellow: Number(config.west.yellow),
-            red: Number(config.west.red),
-          },
-        ],
-      },
-    })
-    onOpenChange(false)
+    setIsSaving(true)
+
+    // Map directions to signal IDs: S1=Mindanao NE, S2=Commonwealth SW, S3=Mindanao SW, S4=Commonwealth NE
+    const newSignalPlan = {
+      signal_timers: [
+        {
+          signal_id: "S1",
+          green: Number(config.mindanao_ne.green),
+          yellow: Number(config.mindanao_ne.yellow),
+          red: Number(config.mindanao_ne.red),
+        },
+        {
+          signal_id: "S2",
+          green: Number(config.commonwealth_sw.green),
+          yellow: Number(config.commonwealth_sw.yellow),
+          red: Number(config.commonwealth_sw.red),
+        },
+        {
+          signal_id: "S3",
+          green: Number(config.mindanao_sw.green),
+          yellow: Number(config.mindanao_sw.yellow),
+          red: Number(config.mindanao_sw.red),
+        },
+        {
+          signal_id: "S4",
+          green: Number(config.commonwealth_ne.green),
+          yellow: Number(config.commonwealth_ne.yellow),
+          red: Number(config.commonwealth_ne.red),
+        },
+      ],
+    }
+
+    try {
+      // Update the frontend store
+      patchConfig({ signal_plan: newSignalPlan })
+
+      // If simulation is running, also update the backend
+      if (runId && (status === "running" || status === "paused")) {
+        await updateSignalPlan(runId, newSignalPlan)
+      }
+
+      onOpenChange(false)
+    } catch (error) {
+      console.error("Failed to update traffic lights:", error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const currentTiming = config[activeDirection]
@@ -235,30 +256,30 @@ export function TrafficLightDialog({
       </CardHeader>
       <CardContent className="space-y-4 px-5 pb-4">
         <Tabs value={activeDirection} onValueChange={handleDirectionChange}>
-          <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-800">
+          <TabsList className="grid w-full grid-cols-2 gap-1 bg-gray-100 dark:bg-gray-800">
             <TabsTrigger
-              value="north"
-              className="transition-none data-active:bg-[#0D1628] data-active:text-white hover:data-active:text-white"
+              value="mindanao_ne"
+              className="text-xs transition-none data-active:bg-[#0D1628] data-active:text-white hover:data-active:text-white"
             >
-              North
+              Mindanao NE
             </TabsTrigger>
             <TabsTrigger
-              value="south"
-              className="transition-none data-active:bg-[#0D1628] data-active:text-white hover:data-active:text-white"
+              value="commonwealth_sw"
+              className="text-xs transition-none data-active:bg-[#0D1628] data-active:text-white hover:data-active:text-white"
             >
-              South
+              Commonwealth SW
             </TabsTrigger>
             <TabsTrigger
-              value="west"
-              className="transition-none data-active:bg-[#0D1628] data-active:text-white hover:data-active:text-white"
+              value="mindanao_sw"
+              className="text-xs transition-none data-active:bg-[#0D1628] data-active:text-white hover:data-active:text-white"
             >
-              West
+              Mindanao SW
             </TabsTrigger>
             <TabsTrigger
-              value="east"
-              className="transition-none data-active:bg-[#0D1628] data-active:text-white hover:data-active:text-white"
+              value="commonwealth_ne"
+              className="text-xs transition-none data-active:bg-[#0D1628] data-active:text-white hover:data-active:text-white"
             >
-              East
+              Commonwealth NE
             </TabsTrigger>
           </TabsList>
 
@@ -370,9 +391,10 @@ export function TrafficLightDialog({
             {/* Save Button */}
             <Button
               onClick={handleSave}
+              disabled={isSaving}
               className="h-11 w-full bg-[#0D1628] hover:bg-[#0D1628]/90"
             >
-              Save Traffic Light Configuration
+              {isSaving ? "Saving..." : "Save Traffic Light Configuration"}
             </Button>
           </TabsContent>
         </Tabs>
@@ -388,22 +410,22 @@ export function TrafficLightDialog({
             const signalTimers =
               useSimStore.getState().config.signal_plan.signal_timers
             setConfig({
-              north: {
+              mindanao_ne: {
                 green: String(signalTimers[0]?.green ?? 30),
                 yellow: String(signalTimers[0]?.yellow ?? 5),
                 red: String(signalTimers[0]?.red ?? 30),
               },
-              south: {
+              commonwealth_sw: {
                 green: String(signalTimers[1]?.green ?? 30),
                 yellow: String(signalTimers[1]?.yellow ?? 5),
                 red: String(signalTimers[1]?.red ?? 30),
               },
-              east: {
+              mindanao_sw: {
                 green: String(signalTimers[2]?.green ?? 30),
                 yellow: String(signalTimers[2]?.yellow ?? 5),
                 red: String(signalTimers[2]?.red ?? 30),
               },
-              west: {
+              commonwealth_ne: {
                 green: String(signalTimers[3]?.green ?? 30),
                 yellow: String(signalTimers[3]?.yellow ?? 5),
                 red: String(signalTimers[3]?.red ?? 30),

@@ -5,7 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { X, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import { useSimStore } from "@/features/simulation/store"
-import { optimizeSignalPlan, type OptimizationResult } from "@/api/simulation"
+import {
+  optimizeSignalPlan,
+  updateSignalPlan,
+  type OptimizationResult,
+} from "@/api/simulation"
 
 interface OptimizationDialogProps {
   open: boolean
@@ -20,6 +24,8 @@ export function OptimizationDialog({
 }: OptimizationDialogProps) {
   const simConfig = useSimStore((s) => s.config)
   const patchConfig = useSimStore((s) => s.patchConfig)
+  const runId = useSimStore((s) => s.runId)
+  const status = useSimStore((s) => s.status)
 
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [result, setResult] = useState<OptimizationResult | null>(null)
@@ -57,15 +63,25 @@ export function OptimizationDialog({
     }
   }
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!result) return
 
-    patchConfig({
-      signal_plan: result.best_signal_plan,
-    })
+    try {
+      // Update the frontend store
+      patchConfig({
+        signal_plan: result.best_signal_plan,
+      })
 
-    onOptimizationComplete?.()
-    onOpenChange(false)
+      // If simulation is running, also update the backend
+      if (runId && (status === "running" || status === "paused")) {
+        await updateSignalPlan(runId, result.best_signal_plan)
+      }
+
+      onOptimizationComplete?.()
+      onOpenChange(false)
+    } catch (error) {
+      console.error("Failed to apply optimized plan:", error)
+    }
   }
 
   const handleReset = () => {

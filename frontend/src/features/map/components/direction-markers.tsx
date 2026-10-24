@@ -3,47 +3,51 @@ import type { LatLngExpression } from "leaflet"
 
 interface DirectionMarkersProps {
   center: LatLngExpression
-  activeDirection?: "north" | "south" | "east" | "west"
-  onDirectionChange?: (direction: "north" | "south" | "east" | "west") => void
+  activeDirection?:
+    "mindanao_ne" | "commonwealth_sw" | "mindanao_sw" | "commonwealth_ne"
+  onDirectionChange?: (
+    direction:
+      "mindanao_ne" | "commonwealth_sw" | "mindanao_sw" | "commonwealth_ne"
+  ) => void
 }
 
 export function DirectionMarkers({
   center,
-  activeDirection = "north",
+  activeDirection = "mindanao_ne",
   onDirectionChange,
 }: DirectionMarkersProps) {
-  // Calculate positions for N, S, E, W markers relative to the center
+  // Calculate positions for markers relative to the center
   const [lat, lng] = center as [number, number]
   const offset = 0.0008 // Adjust this to change marker distance from center
 
   const directions: Array<{
     name: string
-    key: "north" | "south" | "east" | "west"
+    key: "mindanao_ne" | "commonwealth_sw" | "mindanao_sw" | "commonwealth_ne"
     position: LatLngExpression
     color: string
   }> = [
     {
-      name: "N",
-      key: "north",
-      position: [lat + offset, lng] as LatLngExpression,
+      name: "Mindanao NE",
+      key: "mindanao_ne",
+      position: [lat + offset, lng + offset] as LatLngExpression,
       color: "#3b82f6",
     },
     {
-      name: "S",
-      key: "south",
-      position: [lat - offset, lng] as LatLngExpression,
+      name: "Commonwealth SW",
+      key: "commonwealth_sw",
+      position: [lat - offset, lng - offset] as LatLngExpression,
       color: "#ef4444",
     },
     {
-      name: "E",
-      key: "east",
-      position: [lat, lng + offset] as LatLngExpression,
+      name: "Mindanao SW",
+      key: "mindanao_sw",
+      position: [lat - offset, lng + offset] as LatLngExpression,
       color: "#f59e0b",
     },
     {
-      name: "W",
-      key: "west",
-      position: [lat, lng - offset] as LatLngExpression,
+      name: "Commonwealth NE",
+      key: "commonwealth_ne",
+      position: [lat + offset, lng - offset] as LatLngExpression,
       color: "#10b981",
     },
   ]

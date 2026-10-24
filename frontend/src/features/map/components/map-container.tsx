@@ -28,8 +28,8 @@ function MapContainer() {
   const [isMetricsSidebarOpen, setIsMetricsSidebarOpen] = useState(false)
   const [isSignalStatusOpen, setIsSignalStatusOpen] = useState(false)
   const [activeDirection, setActiveDirection] = useState<
-    "north" | "south" | "east" | "west"
-  >("north")
+    "mindanao_ne" | "commonwealth_sw" | "mindanao_sw" | "commonwealth_ne"
+  >("mindanao_ne")
 
   const handleMetricsToggle = () => setIsMetricsSidebarOpen((open) => !open)
 
